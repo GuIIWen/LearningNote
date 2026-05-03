@@ -1,0 +1,267 @@
+{
+  "main": {
+    "id": "201fe4a442ae0e0c",
+    "type": "split",
+    "children": [
+      {
+        "id": "0294385a23e648c5",
+        "type": "tabs",
+        "dimension": 73.82671480144406,
+        "children": [
+          {
+            "id": "54ef30e2dbc32c8b",
+            "type": "leaf",
+            "state": {
+              "type": "mindmap",
+              "state": {},
+              "icon": "dot-network",
+              "title": "Mind Map of agent_knowledge_mindmap"
+            }
+          }
+        ]
+      },
+      {
+        "id": "b58f08fb04e7f7fd",
+        "type": "tabs",
+        "dimension": 26.173285198555956,
+        "children": [
+          {
+            "id": "4a8820476c8ccdd1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "AgentKnowledge/agent_knowledge_mindmap.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "agent_knowledge_mindmap"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "461845fd300aafdd",
+    "type": "split",
+    "children": [
+      {
+        "id": "5e313f8ed70ff11c",
+        "type": "tabs",
+        "dimension": 70.50147492625368,
+        "children": [
+          {
+            "id": "7ae2552cc81a665e",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "974e86a5b03346c5",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "50161134b8cac37b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      },
+      {
+        "id": "464b63f55542275b",
+        "type": "tabs",
+        "dimension": 29.49852507374631,
+        "children": [
+          {
+            "id": "b0fe738893e4507d",
+            "type": "leaf",
+            "state": {
+              "type": "calendar",
+              "state": {},
+              "icon": "calendar-with-checkmark",
+              "title": "Calendar"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 275.5
+  },
+  "right": {
+    "id": "60eaa5a9ec3649c6",
+    "type": "split",
+    "children": [
+      {
+        "id": "a6121cf311451d70",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "713eaa32ce707203",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Excalidraw/SFT.excalidraw.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "SFT.excalidraw 的反向链接列表"
+            }
+          },
+          {
+            "id": "dc109c1a20aac327",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "AgentKnowledge/agent_knowledge_mindmap.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "agent_knowledge_mindmap 的出链列表"
+            }
+          },
+          {
+            "id": "e343aa4d9a76c754",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "ca28c057381180a0",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "9c18a5f24494f318",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "templates:插入模板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false,
+      "obsidian-excalidraw-plugin:New drawing": false
+    }
+  },
+  "active": "4a8820476c8ccdd1",
+  "lastOpenFiles": [
+    "AgentKnowledge/agent_book_chapter21.md",
+    "AgentKnowledge/agent_book_chapter20.md",
+    "AgentKnowledge/agent_book_chapter19.md",
+    "AgentKnowledge/agent_book_chapter18.md",
+    "AgentKnowledge/agent_book_chapter17.md",
+    "AgentKnowledge/agent_book_chapter16.md",
+    "AgentKnowledge/agent_book_chapter15.md",
+    "AgentKnowledge/agent_book_chapter14.md",
+    "AgentKnowledge/agent_book_chapter13.md",
+    "AgentKnowledge/agent_book_chapter12.md",
+    "AgentKnowledge/agent_book_chapter11.md",
+    "AgentKnowledge/agent_book_chapter6.md",
+    "AgentKnowledge/agent_book_chapter5.md",
+    "AgentKnowledge/agent_book_chapter2.md",
+    "AgentKnowledge/agent_book_chapter3.md",
+    "AgentKnowledge/agent_book_chapter4.md",
+    "AgentKnowledge/agent_book_chapter10.md",
+    "AgentKnowledge/agent_book_chapter9.md",
+    "AgentKnowledge/agent_book_chapter8.md",
+    "AgentKnowledge/agent_book_chapter7.md",
+    "AgentKnowledge/agent_book_chapter1.md",
+    "AgentKnowledge/11-20(已筛选）.md",
+    "未命名",
+    "AgentKnowledge/agent_knowledge_mindmap.md",
+    "Excalidraw/SFT.excalidraw.md",
+    "agent_book_chapter1.md",
+    "AgentKnowledge/Drawing 2026-04-21 10.47.34.excalidraw.md",
+    "Gemini_Generated_Image_phrzspphrzspphrz (1).png",
+    "Pasted image 20260410111827.png",
+    "Gemini_Generated_Image_68fwcq68fwcq68fw.png",
+    "Pasted image 20260410111708.png",
+    "Pasted image 20260410105813.png",
+    "Pasted image 20260410105736.png",
+    "Pasted image 20260410104652.png",
+    "Pasted image 20260410092134.png",
+    "Pasted image 20260409104139.png",
+    "Pasted image 20260409103258.png",
+    "AgentKnowledge",
+    "未命名.base",
+    "未命名 1.base",
+    "Excalidraw"
+  ]
+}
