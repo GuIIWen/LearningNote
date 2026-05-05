@@ -756,30 +756,30 @@
                 }
                 else if (type === 'reflection') {
                     // Reasoning / ToT (Chapter 17)
-                    drawNode(80, 300, "Initial Task", "circle", "Problem");
+                    drawNode(60, 300, "Initial Task", "circle", "Problem");
                     drawNode(280, 150, "Thought A", "rect", "Branch 1");
                     drawNode(280, 300, "Thought B", "rect", "Branch 2");
                     drawNode(280, 450, "Thought C", "rect", "Branch 3");
-                    drawNode(520, 300, "Evaluator", "diamond", "Self-Correction");
-                    drawNode(760, 300, "Optimal Path", "circle", "Solution");
+                    drawNode(500, 300, "Evaluator", "diamond", "Self-Correction");
+                    drawNode(720, 300, "Optimal Path", "circle", "Solution");
 
-                    drawFlow(115, 300, 220, 150, "Proposal 1");
-                    drawFlow(115, 300, 220, 300, "Proposal 2");
-                    drawFlow(115, 300, 220, 450, "Proposal 3");
+                    drawFlow(95, 300, 220, 150, "Proposal 1");
+                    drawFlow(95, 300, 220, 300, "Proposal 2");
+                    drawFlow(95, 300, 220, 450, "Proposal 3");
                     
-                    drawFlow(340, 150, 475, 275, "Logit Score");
-                    drawFlow(340, 300, 460, 300, "Consistency");
-                    drawFlow(340, 450, 475, 325, "Heuristic");
+                    drawFlow(340, 150, 445, 275, "Logit Score");
+                    drawFlow(340, 300, 440, 300, "Consistency");
+                    drawFlow(340, 450, 445, 325, "Heuristic");
 
-                    drawFlow(580, 300, 725, 300, "Yes (Valid)", "cond");
+                    drawFlow(560, 300, 685, 300, "Yes (Valid)", "cond");
                     
                     // Backtracking Loop
                     const backPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    backPath.setAttribute("d", "M 520 265 C 520 50, 80 50, 80 265");
+                    backPath.setAttribute("d", "M 500 265 C 500 50, 60 50, 60 265");
                     backPath.setAttribute("class", "loop-path");
                     backPath.setAttribute("style", "stroke: var(--danger); stroke-dasharray: 4 2; fill: none; marker-end: url(#arrowhead-warning);");
                     svgContent.appendChild(backPath);
-                    drawLabel(300, 60, "No (Backtrack)", "cond");
+                    drawLabel(280, 60, "No (Backtrack)", "cond");
                 }
                 else if (type === 'judge') {
                     // LLM-as-a-Judge (Chapter 11, 19)

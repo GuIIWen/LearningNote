@@ -1,19 +1,19 @@
 {
   "main": {
-    "id": "201fe4a442ae0e0c",
+    "id": "8ebb611768b44db1",
     "type": "split",
     "children": [
       {
-        "id": "b58f08fb04e7f7fd",
+        "id": "fc39459521b97b3d",
         "type": "tabs",
         "children": [
           {
-            "id": "4a8820476c8ccdd1",
+            "id": "911c436a4cb0e97f",
             "type": "leaf",
             "state": {
               "type": "excalidraw",
               "state": {
-                "file": "Excalidraw/Agent.excalidraw.md"
+                "file": "Agent.excalidraw.md"
               },
               "icon": "excalidraw-icon",
               "title": "Agent.excalidraw"
@@ -25,16 +25,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "461845fd300aafdd",
+    "id": "45dabc810aa5e54b",
     "type": "split",
     "children": [
       {
-        "id": "5e313f8ed70ff11c",
+        "id": "d1e2ec1b2968a3aa",
         "type": "tabs",
-        "dimension": 70.50147492625369,
         "children": [
           {
-            "id": "7ae2552cc81a665e",
+            "id": "db0c3fbc89eb0bc9",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -47,7 +46,7 @@
             }
           },
           {
-            "id": "974e86a5b03346c5",
+            "id": "543cd322c51fed48",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -64,7 +63,7 @@
             }
           },
           {
-            "id": "50161134b8cac37b",
+            "id": "2bc18acb52e0f55b",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -74,44 +73,26 @@
             }
           }
         ]
-      },
-      {
-        "id": "464b63f55542275b",
-        "type": "tabs",
-        "dimension": 29.498525073746315,
-        "children": [
-          {
-            "id": "b0fe738893e4507d",
-            "type": "leaf",
-            "state": {
-              "type": "calendar",
-              "state": {},
-              "icon": "calendar-with-checkmark",
-              "title": "Calendar"
-            }
-          }
-        ]
       }
     ],
     "direction": "horizontal",
-    "width": 275.5,
-    "collapsed": true
+    "width": 300
   },
   "right": {
-    "id": "60eaa5a9ec3649c6",
+    "id": "4d69cfe3b8d1d01e",
     "type": "split",
     "children": [
       {
-        "id": "a6121cf311451d70",
+        "id": "77bd6ae16ba09a94",
         "type": "tabs",
         "children": [
           {
-            "id": "713eaa32ce707203",
+            "id": "3aef49429b6c0ca5",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Excalidraw/SFT.excalidraw.md",
+                "file": "Agent.excalidraw.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -121,25 +102,25 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "SFT.excalidraw 的反向链接列表"
+              "title": "Agent.excalidraw 的反向链接列表"
             }
           },
           {
-            "id": "dc109c1a20aac327",
+            "id": "d01bed0b13181335",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "AgentKnowledge/agent_knowledge_mindmap.md",
+                "file": "Agent.excalidraw.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "agent_knowledge_mindmap 的出链列表"
+              "title": "Agent.excalidraw 的出链列表"
             }
           },
           {
-            "id": "e343aa4d9a76c754",
+            "id": "ef43e3cac2cbda10",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -154,7 +135,7 @@
             }
           },
           {
-            "id": "ca28c057381180a0",
+            "id": "d35977a139f73def",
             "type": "leaf",
             "state": {
               "type": "all-properties",
@@ -168,21 +149,21 @@
             }
           },
           {
-            "id": "9c18a5f24494f318",
+            "id": "a921d6d104e886ff",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
+                "file": "Agent.excalidraw.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "大纲"
+              "title": "Agent.excalidraw 的大纲"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
@@ -194,55 +175,17 @@
       "switcher:打开快速切换": false,
       "graph:查看关系图谱": false,
       "canvas:新建白板": false,
-      "templates:插入模板": false,
       "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
       "command-palette:打开命令面板": false,
       "bases:新建数据库": false,
       "obsidian-excalidraw-plugin:New drawing": false
     }
   },
-  "active": "4a8820476c8ccdd1",
+  "active": "911c436a4cb0e97f",
   "lastOpenFiles": [
-    "Excalidraw/LoRA.excalidraw.md",
-    "Excalidraw/Agent.excalidraw.md",
-    "AgentKnowledge/agent_knowledge_mindmap.md",
-    "AgentKnowledge/agent_book_chapter21.md",
-    "AgentKnowledge/agent_book_chapter20.md",
-    "AgentKnowledge/agent_book_chapter19.md",
-    "AgentKnowledge/agent_book_chapter18.md",
-    "AgentKnowledge/agent_book_chapter17.md",
-    "AgentKnowledge/agent_book_chapter16.md",
-    "AgentKnowledge/agent_book_chapter15.md",
-    "AgentKnowledge/agent_book_chapter14.md",
-    "AgentKnowledge/agent_book_chapter13.md",
-    "AgentKnowledge/agent_book_chapter12.md",
-    "AgentKnowledge/agent_book_chapter11.md",
-    "AgentKnowledge/agent_book_chapter6.md",
-    "AgentKnowledge/agent_book_chapter5.md",
-    "AgentKnowledge/agent_book_chapter2.md",
-    "AgentKnowledge/agent_book_chapter3.md",
-    "AgentKnowledge/agent_book_chapter4.md",
-    "AgentKnowledge/agent_book_chapter10.md",
-    "AgentKnowledge/agent_book_chapter9.md",
-    "AgentKnowledge/agent_book_chapter8.md",
-    "AgentKnowledge/agent_book_chapter7.md",
-    "AgentKnowledge/agent_book_chapter1.md",
-    "AgentKnowledge/11-20(已筛选）.md",
-    "未命名",
-    "Excalidraw/SFT.excalidraw.md",
-    "Gemini_Generated_Image_phrzspphrzspphrz (1).png",
-    "Pasted image 20260410111827.png",
-    "Gemini_Generated_Image_68fwcq68fwcq68fw.png",
-    "Pasted image 20260410111708.png",
-    "Pasted image 20260410105813.png",
-    "Pasted image 20260410105736.png",
-    "Pasted image 20260410104652.png",
-    "Pasted image 20260410092134.png",
-    "Pasted image 20260409104139.png",
-    "Pasted image 20260409103258.png",
-    "AgentKnowledge",
-    "未命名.base",
-    "未命名 1.base",
-    "Excalidraw"
+    "LoRA.excalidraw.md",
+    "RLHF.excalidraw.md",
+    "Agent.excalidraw.md"
   ]
 }

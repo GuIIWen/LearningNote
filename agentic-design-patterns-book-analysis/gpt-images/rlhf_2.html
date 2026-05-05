@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPO vs DPO vs GRPO: RLHF三大主流训练范式</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #eff6ff;
+            --border: #bfdbfe;
+            --bg-gray: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --box-blue: #dbeafe;
+            --box-green: #dcfce7;
+            --box-yellow: #fef9c3;
+            --box-red: #fee2e2;
+            --border-blue: #60a5fa;
+            --border-green: #4ade80;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+            background-color: #f1f5f9;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+        }
+
+        .section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .section-header {
+            background-color: var(--primary);
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        /* Flex & Grid Utils */
+        .flex { display: flex; }
+        .flex-col { display: flex; flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 8px; }
+        .gap-4 { gap: 16px; }
+        .gap-6 { gap: 24px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+        /* Custom Nodes */
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            background: #fff;
+        }
+
+        .node {
+            border: 2px solid var(--border-blue);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            background: var(--primary-light);
+            font-weight: 500;
+            font-size: 0.95rem;
+            position: relative;
+        }
+        
+        .node-frozen {
+            border-style: dashed;
+            background: var(--bg-gray);
+        }
+
+        .node-data {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .node-reward {
+            background: var(--box-yellow);
+            border-color: #fde047;
+        }
+
+        .node-loss {
+            border-color: #fca5a5;
+            background: var(--box-red);
+        }
+
+        .arrow-down {
+            text-align: center;
+            color: var(--border-blue);
+            font-size: 20px;
+            margin: 4px 0;
+            font-weight: bold;
+        }
+
+        .arrow-right {
+            color: var(--border-blue);
+            font-size: 24px;
+            margin: 0 10px;
+            font-weight: bold;
+        }
+
+        /* Section 1 Specific */
+        .s1-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr 250px;
+            gap: 20px;
+        }
+
+        .s1-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .shared-components {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .comp-tag {
+            display: inline-flex;
+            align-items: center;
+            background: var(--bg-gray);
+            border: 1px solid #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background: var(--primary-light);
+            font-weight: 600;
+        }
+
+        td:first-child {
+            background: var(--bg-gray);
+            font-weight: bold;
+            width: 12%;
+        }
+
+        /* Lists */
+        ul {
+            margin: 0;
+            padding-left: 20px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .pros { background: var(--box-green); border: 1px solid #bbf7d0; padding: 12px; border-radius: 6px;}
+        .cons { background: var(--box-red); border: 1px solid #fecaca; padding: 12px; border-radius: 6px;}
+        .pros h4, .cons h4 { margin: 0 0 8px 0; font-size: 1rem; color: #166534; border-bottom: 1px solid #bbf7d0; padding-bottom: 4px;}
+        .cons h4 { color: #991b1b; border-bottom: 1px solid #fecaca;}
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>PPO vs DPO vs GRPO: RLHF三大主流训练范式</h1>
+        <p>在统一的RLHF框架下，三种方法通过不同方式利用偏好信号优化策略模型，使其输出更符合人类期望</p>
+    </div>
+
+    <!-- Section 1 -->
+    <div class="section">
+        <div class="section-header">1. 统一RLHF框架：三者共享的通用流程与组件</div>
+        <div class="section-content s1-layout">
+            <div class="flex-col gap-4">
+                <div class="card">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: var(--primary);">核心目标</div>
+                    <div style="font-size: 0.9rem;">在保持模型原有能力的同时，使模型输出更符合人类偏好或规则偏好</div>
+                </div>
+                <div class="card">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: var(--primary);">本质</div>
+                    <div style="font-size: 0.9rem;">KL-regularized Preference Optimization<br>(在KL约束下最大化期望偏好奖励)</div>
+                </div>
+            </div>
+
+            <div class="flex-col">
+                <div class="s1-flow">
+                    <div class="node node-frozen">基础模型<br>(Base LLM)</div>
+                    <div class="arrow-right">→</div>
+                    <div class="node node-frozen">SFT模型<br>(监督微调)</div>
+                    <div class="arrow-right">→</div>
+                    <div class="node node-data">生成候选响应<br><span style="font-size:0.8rem; color:#475569;">给定 Prompt x<br>采样得到 y₁, y₂, ..., yₙ</span></div>
+                    <div class="arrow-right">→</div>
+                    <div class="node node-reward">偏好信号 (Preference Signal)<br>
+                        <div style="display:flex; gap:10px; font-size:0.8rem; margin-top:8px; justify-content:center;">
+                            <div style="background:#fff; padding:4px; border-radius:4px;">人类偏好数据<br>y_w > y_l</div>
+                            <div style="background:#fff; padding:4px; border-radius:4px;">奖励模型打分<br>r_θ(x, y)</div>
+                            <div style="background:#fff; padding:4px; border-radius:4px;">规则/程序化奖励<br>R(x, y)</div>
+                        </div>
+                    </div>
+                    <div class="arrow-right">→</div>
+                    <div class="node" style="border-color:#3b82f6; border-width:3px;">策略更新<br><span style="font-size:0.8rem; color:#1d4ed8;">优化策略模型 π_θ<br>使其生成更优回答</span></div>
+                </div>
+
+                <div style="text-align:center; font-weight:bold; margin-top:10px; color:#334155;">共享组件 (所有方法都具备)</div>
+                <div class="shared-components">
+                    <div class="comp-tag">⚙️ 策略模型 π_θ (Policy Model)</div>
+                    <div class="comp-tag">🧊 参考模型 π_ref (通常为SFT冻结副本)</div>
+                    <div class="comp-tag">⚖️ KL约束 (防止偏离参考模型)</div>
+                    <div class="comp-tag">📈 优化器 (AdamW等)</div>
+                    <div class="comp-tag">🎲 采样模块 (温度/Top-p等)</div>
+                </div>
+            </div>
+
+            <div class="card" style="background: var(--primary-light); border-color:var(--border-blue);">
+                <div style="font-weight: bold; margin-bottom: 10px; text-align:center; color: var(--primary);">共同目标函数形式 (抽象)</div>
+                <div style="background:#fff; padding:15px 10px; border-radius:6px; font-family:'Times New Roman', serif; font-size: 1.1rem; text-align:center; margin-bottom:10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                    <span style="font-family: 'Cambria Math', 'Times New Roman', serif;">max<sub>π</sub> <i>E</i><sub>x, y ∼ π</sub> [<i>R</i>(x, y)] - β <i>D</i><sub>KL</sub>(π || π<sub>ref</sub>)</span>
+                </div>
+                <ul style="font-size: 0.85rem; padding-left: 15px; color:#334155;">
+                    <li><b>R(x,y)</b>: 偏好奖励 (来源不同)</li>
+                    <li><b>β</b>: KL系数，控制与参考模型的接近程度</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="section">
+        <div class="section-header">2. 各方法组成与训练流程</div>
+        <div class="section-content grid-3">
+            <!-- PPO -->
+            <div class="card flex-col items-center" style="background:#f8fafc; border-top: 4px solid #3b82f6;">
+                <div style="background:#3b82f6; color:white; padding:6px 20px; border-radius:20px; font-weight:bold; margin-bottom:20px;">PPO (基于奖励模型的强化学习)</div>
+                
+                <div class="flex gap-2 items-center w-full justify-center">
+                    <div class="node node-data">Prompt x</div>
+                    <div class="arrow-right">→</div>
+                    <div class="node">策略模型 π_θ<br><span style="font-size:0.75rem">(可训练)</span></div>
+                    <div class="arrow-right">→</div>
+                    <div class="node node-data">生成多个响应<br><span style="font-size:0.75rem">y₁...y_G (on-policy)</span></div>
+                </div>
+                
+                <div class="flex gap-4 items-center w-full justify-center" style="margin-top:20px;">
+                    <div class="node node-frozen" style="font-size:0.8rem">参考模型 π_ref<br>(旧策略拷贝)</div>
+                    <div style="font-size:12px; color:#64748b;">—显式KL—&gt;</div>
+                    <div class="node node-reward">奖励模型 π_RM<br>(RM)</div>
+                </div>
+
+                <div class="arrow-down">↓</div>
+                <div class="node" style="width: 60%;">优势函数 A_t<br><span style="font-size:0.75rem">(GAE)</span></div>
+                
+                <div class="arrow-down">↓</div>
+                <div class="node node-loss" style="width: 70%;">PPO目标<br><span style="font-size:0.75rem">(Clipped Surrogate)</span></div>
+                
+                <div class="arrow-down" style="color:#2563eb;">更新 π_θ ↑</div>
+                
+                <div style="margin-top:16px; font-size:0.85rem; border-top:1px dashed #cbd5e1; padding-top:12px; width:100%; text-align:center; color:#334155;">
+                    <b>梯度来源:</b> 优势函数 (由奖励模型打分得到)
+                </div>
+            </div>
+
+            <!-- DPO -->
+            <div class="card flex-col items-center" style="background:#f0fdf4; border-top: 4px solid #10b981;">
+                <div style="background:#10b981; color:white; padding:6px 20px; border-radius:20px; font-weight:bold; margin-bottom:20px;">DPO (直接偏好优化)</div>
+                <div class="node node-data" style="margin-bottom:16px; width: 80%;">Prompt x + 偏好对 (y_w, y_l)</div>
+                
+                <div class="flex justify-between w-full gap-2">
+                    <div class="node" style="flex:1;">策略模型 π_θ<br><span style="font-size:0.75rem">(可训练)</span><br><span style="font-size:0.75rem; color:#64748b;">计算 log π_θ(y|x)</span></div>
+                    <div class="node node-frozen" style="flex:1;">参考模型 π_ref<br><span style="font-size:0.75rem">(冻结)</span><br><span style="font-size:0.75rem; color:#64748b;">计算 log π_ref(y|x)</span></div>
+                </div>
+                
+                <div class="arrow-down" style="margin-top:16px;">↓</div>
+                <div class="node node-loss" style="width:90%;">
+                    DPO 损失 (偏好对比)<br>
+                    <div style="font-family:'Times New Roman', serif; font-size:0.95rem; margin-top:8px; background:#fff; padding:6px; border-radius:4px;">
+                        <span style="font-family: 'Cambria Math', 'Times New Roman', serif;">-log σ( β log(π<sub>θ</sub>(y<sub>w</sub>|x) / π<sub>ref</sub>(y<sub>w</sub>|x))<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- β log(π<sub>θ</sub>(y<sub>l</sub>|x) / π<sub>ref</sub>(y<sub>l</sub>|x)) )</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">(等价于隐式KL约束的偏好学习)</div>
+                </div>
+                
+                <div class="arrow-down" style="color:#059669;">更新 π_θ ↑</div>
+                
+                <div style="margin-top:16px; font-size:0.85rem; border-top:1px dashed #cbd5e1; padding-top:12px; width:100%; text-align:center; color:#334155;">
+                    <b>梯度来源:</b> 策略与参考模型的log概率比值
+                </div>
+            </div>
+
+            <!-- GRPO -->
+            <div class="card flex-col items-center" style="background:#fdf4ff; border-top: 4px solid #d946ef;">
+                <div style="background:#d946ef; color:white; padding:6px 20px; border-radius:20px; font-weight:bold; margin-bottom:20px;">GRPO (基于规则奖励的组相对优化)</div>
+                
+                <div class="flex gap-2 items-center w-full justify-center">
+                    <div class="node node-data">Prompt x</div>
+                    <div class="arrow-right">→</div>
+                    <div class="node">策略模型 π_θ<br><span style="font-size:0.75rem">(可训练)</span></div>
+                    <div class="arrow-right">→</div>
+                    <div class="node node-data">生成一组响应<br><span style="font-size:0.75rem">y₁...y_G (on-policy)</span></div>
+                </div>
+                
+                <div class="arrow-down">↓</div>
+                <div class="node node-reward" style="width:80%;">规则/程序化奖励 R(x,y)<br><span style="font-size:0.75rem; color:#64748b;">(如: 正确性、可运行性、格式等)</span></div>
+                
+                <div class="arrow-down">↓</div>
+                <div class="flex gap-2 w-full justify-center">
+                    <div class="node node-frozen" style="font-size:0.75rem; flex:1;">参考模型 π_ref<br><span style="color:#64748b">KL约束 (显式计算)</span></div>
+                    <div class="node" style="font-size:0.75rem; flex:1;">组内优势估计 A_i<br><span style="color:#64748b">(相对奖励归一化)</span></div>
+                </div>
+
+                <div class="arrow-down">↓</div>
+                <div class="node node-loss" style="width: 70%;">GRPO目标<br><span style="font-size:0.75rem">(结合优势与KL)</span></div>
+                
+                <div class="arrow-down" style="color:#c026d3;">更新 π_θ ↑</div>
+                
+                <div style="margin-top:16px; font-size:0.85rem; border-top:1px dashed #cbd5e1; padding-top:12px; width:100%; text-align:center; color:#334155;">
+                    <b>梯度来源:</b> 规则奖励 + 相对优势 (组内归一化)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="section">
+        <div class="section-header">3. 特性对比总览</div>
+        <div class="section-content" style="padding:0; overflow-x: auto;">
+            <table>
+                <tr>
+                    <th>维度</th>
+                    <th>PPO</th>
+                    <th>DPO</th>
+                    <th>GRPO</th>
+                </tr>
+                <tr>
+                    <td>范式</td>
+                    <td>基于奖励模型的强化学习 (on-policy RL)</td>
+                    <td>直接偏好优化 (off-policy, 监督学习形式)</td>
+                    <td>基于规则奖励的组相对强化学习 (on-policy RL)</td>
+                </tr>
+                <tr>
+                    <td>是否需要奖励模型 (RM)</td>
+                    <td><span style="color:#ef4444; font-weight:bold;">需要</span> (必须训练RM)</td>
+                    <td><span style="color:#10b981; font-weight:bold;">不需要</span></td>
+                    <td><span style="color:#10b981; font-weight:bold;">不需要</span> (使用规则/程序化奖励)</td>
+                </tr>
+                <tr>
+                    <td>数据需求</td>
+                    <td>大量偏好对 (训练RM) + 训练时在线采样</td>
+                    <td>偏好对数据 (离线即可)</td>
+                    <td>规则定义 + 在线采样</td>
+                </tr>
+                <tr>
+                    <td>采样方式</td>
+                    <td>每步都要采样 (on-policy)</td>
+                    <td>无需采样 (仅计算log概率)</td>
+                    <td>每步采样一组响应 (on-policy)</td>
+                </tr>
+                <tr>
+                    <td>KL约束方式</td>
+                    <td>显式KL惩罚 (在目标函数中)</td>
+                    <td>隐式KL (通过log概率比实现)</td>
+                    <td>显式/近似隐式KL (通过参考模型直接计算)</td>
+                </tr>
+                <tr>
+                    <td>训练稳定性</td>
+                    <td>较低 (对超参数敏感)</td>
+                    <td>高 (非常稳定)</td>
+                    <td>中等偏高 (比PPO稳定)</td>
+                </tr>
+                <tr>
+                    <td>计算成本</td>
+                    <td><span style="color:#ef4444; font-weight:bold;">高</span> (需RM推理 + 反复采样)</td>
+                    <td><span style="color:#10b981; font-weight:bold;">低</span> (仅前向计算log概率)</td>
+                    <td><span style="color:#f59e0b; font-weight:bold;">中等</span> (采样 + 规则奖励计算)</td>
+                </tr>
+                <tr>
+                    <td>适用场景</td>
+                    <td>通用对齐、复杂偏好/价值观对齐 (GPT-4等)</td>
+                    <td>偏好对齐、人类反馈学习 (中小模型友好)</td>
+                    <td>可验证任务、代码生成、数学推理等 (规则清晰)</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="section">
+        <div class="section-header">4. 关键超参数对比</div>
+        <div class="section-content grid-3">
+            <div class="card" style="border-top: 3px solid #3b82f6;">
+                <div style="font-weight:bold; color:#1d4ed8; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">PPO</div>
+                <ul>
+                    <li><b>KL系数 β</b> (控制KL惩罚强度)</li>
+                    <li><b>PPO clipping ε</b> (0.1~0.3)</li>
+                    <li><b>价值/奖励折扣因子</b> γ, λ (GAE参数)</li>
+                    <li><b>Reward scaling / normalization</b> (奖励归一化)</li>
+                    <li><b>训练epoch数 K</b> (每个batch的更新轮数)</li>
+                    <li><b>Mini-batch size</b></li>
+                    <li><b>学习率 LR</b>, Weight Decay, Warmup Steps</li>
+                    <li><b>梯度裁剪</b> (Gradient Clipping)</li>
+                    <li><b>采样参数:</b> 温度、Top-p、生成长度等</li>
+                    <li><b>RM相关:</b> RM batch size, reward offset等</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 3px solid #10b981;">
+                <div style="font-weight:bold; color:#047857; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">DPO</div>
+                <ul>
+                    <li><b>KL系数 β</b> (偏好强度, 常用 0.01~0.2)</li>
+                    <li><b>损失类型:</b> sigmoid (标准) / JS / hinge 等</li>
+                    <li><b>偏好对采样策略:</b> hard/easy pair比例</li>
+                    <li><b>参考模型选择</b> (SFT模型版本、是否早停等)</li>
+                    <li><b>学习率 LR</b>, Weight Decay, Warmup Steps</li>
+                    <li><b>梯度裁剪</b></li>
+                    <li><b>批大小 (Batch Size)</b></li>
+                    <li><b>最大长度、温度等生成参数</b> (仅用于构造数据)</li>
+                </ul>
+            </div>
+            <div class="card" style="border-top: 3px solid #d946ef;">
+                <div style="font-weight:bold; color:#a21caf; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;">GRPO</div>
+                <ul>
+                    <li><b>KL系数 β</b> (隐式/显式KL权重)</li>
+                    <li><b>规则奖励各项权重</b> (reward scale)</li>
+                    <li><b>组大小 G</b> (每个prompt生成的响应数)</li>
+                    <li><b>优势归一化方式:</b> 组内归一化/运行均值归一化</li>
+                    <li><b>学习率 LR</b>, Weight Decay, Warmup Steps</li>
+                    <li><b>梯度裁剪</b></li>
+                    <li><b>采样参数:</b> 温度、Top-p、生成长度</li>
+                    <li><b>规则设计相关阈值</b> (如正确性判定阈值等)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5 -->
+    <div class="section">
+        <div class="section-header">5. 优缺点总结</div>
+        <div class="section-content grid-3">
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4>👍 优点</h4>
+                    <ul>
+                        <li>表达能力最强，可学习复杂“隐式”偏好</li>
+                        <li>可处理稀疏/延迟奖励</li>
+                        <li>已被大规模模型实验验证(如ChatGPT)</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4>👎 缺点</h4>
+                    <ul>
+                        <li>训练复杂，超参数敏感</li>
+                        <li>需要训练和维护RM(成本高)</li>
+                        <li>reward hacking风险</li>
+                        <li>训练不稳定，容易崩溃</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4>👍 优点</h4>
+                    <ul>
+                        <li>训练简单、稳定、高效</li>
+                        <li>无需奖励模型，成本低</li>
+                        <li>离线数据即可训练，易复现</li>
+                        <li>在多数通用对齐任务上表现良好</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4>👎 缺点</h4>
+                    <ul>
+                        <li>只能利用成对偏好信息，表达能力受限</li>
+                        <li>难以处理稀疏奖励或规则型任务</li>
+                        <li>对偏好数据质量较敏感</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4>👍 优点</h4>
+                    <ul>
+                        <li>无需RM，降低成本</li>
+                        <li>结合规则奖励，适合可验证任务</li>
+                        <li>比PPO更稳定，训练更容易</li>
+                        <li>在代码/数学等任务上表现突出</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4>👎 缺点</h4>
+                    <ul>
+                        <li>需要设计高质量的规则奖励</li>
+                        <li>规则不完善会影响效果</li>
+                        <li>泛化到开放性对齐任务时不如PPO</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
