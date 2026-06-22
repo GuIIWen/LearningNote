@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>训练 Loss 曲线可视化</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f6f8fa;
+    --surface: #ffffff;
+    --surface2: #f0f2f5;
+    --border: rgba(0,0,0,0.08);
+    --border2: rgba(0,0,0,0.15);
+    --text: #1a1a2e;
+    --text2: #57606a;
+    --accent: #0969da;
+    --accent2: #0550ae;
+    --green: #1a7f37;
+    --amber: #9a6700;
+    --red: #cf222e;
+    --purple: #8250df;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border2);
+  }
+
+  .header-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #1f6feb, #388bfd);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  .header p {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 2px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: 12px;
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--surface);
+    margin-bottom: 24px;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(88, 166, 255, 0.05);
+  }
+
+  .upload-zone input { display: none; }
+
+  .upload-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+
+  .upload-zone h2 {
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .upload-zone p {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all 0.15s;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .btn:hover { background: var(--surface); border-color: var(--accent); color: var(--accent); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--accent2);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #388bfd; color: #fff; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+
+  .stat-value.green { color: var(--green); }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.purple { color: var(--purple); }
+
+  .chart-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-family: -apple-system, sans-serif;
+  }
+
+  .chart-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .toggle-btn {
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: -apple-system, sans-serif;
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  .toggle-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+
+  #chart-wrapper { position: relative; width: 100%; height: 360px; }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .smoothing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, sans-serif;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  input[type=range] {
+    width: 100px;
+    accent-color: var(--accent);
+  }
+
+  .file-name {
+    font-size: 11px;
+    color: var(--accent);
+    font-family: monospace;
+    background: rgba(88, 166, 255, 0.1);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  #result { display: none; }
+
+  .empty-chart {
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text2);
+    font-family: -apple-system, sans-serif;
+  }
+
+  .empty-chart .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-chart p { font-size: 13px; }
+
+  .parse-info {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: -apple-system, sans-serif;
+    padding: 8px 0 0;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">📈</div>
+  <div>
+    <h1>Training Loss Viewer</h1>
+    <p>解析训练日志，可视化 loss 曲线 · 支持导出 PNG</p>
+  </div>
+</div>
+
+<div class="upload-zone" id="dropZone">
+  <input type="file" id="fileInput" accept=".log,.txt">
+  <div class="upload-icon">📂</div>
+  <h2>拖拽日志文件到此处，或点击上传</h2>
+  <p style="margin-top:8px">支持 .log / .txt 格式 &nbsp;·&nbsp; 自动提取 loss、grad_norm、learning_rate、token_acc</p>
+  <br>
+  <label for="fileInput" class="btn btn-primary" style="cursor:pointer">选择文件</label>
+</div>
+
+<div id="result">
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span id="fileName" class="file-name">—</span>
+      <span id="parseInfo" class="parse-info"></span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div class="smoothing-row">
+        <span>平滑</span>
+        <input type="range" min="0" max="0.99" step="0.01" value="0" id="smoothSlider">
+        <span id="smoothVal">0</span>
+      </div>
+      <button class="btn btn-primary" id="exportBtn">⬇ 导出 PNG</button>
+      <button class="btn" id="resetBtn">↺ 重新上传</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">最终 Loss</div>
+      <div class="stat-value blue" id="finalLoss">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最低 Loss</div>
+      <div class="stat-value green" id="minLoss">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">初始 Loss</div>
+      <div class="stat-value amber" id="initLoss">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">训练步数</div>
+      <div class="stat-value purple" id="totalSteps">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最终 Epoch</div>
+      <div class="stat-value blue" id="finalEpoch">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最终 Token Acc</div>
+      <div class="stat-value green" id="finalAcc">—</div>
+    </div>
+  </div>
+
+  <div class="chart-panel">
+    <div class="chart-header">
+      <span class="chart-title">Loss Curve</span>
+      <div class="chart-actions">
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="xStep" onclick="setXAxis('step')">Steps</button>
+          <button class="toggle-btn" id="xEpoch" onclick="setXAxis('epoch')">Epoch</button>
+        </div>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="showLoss" onclick="toggleSeries('loss')">Loss</button>
+          <button class="toggle-btn" id="showGrad" onclick="toggleSeries('grad')">Grad</button>
+          <button class="toggle-btn" id="showAcc" onclick="toggleSeries('acc')">Acc</button>
+          <button class="toggle-btn" id="showLR" onclick="toggleSeries('lr')">LR</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="chart-wrapper">
+      <canvas id="mainChart" role="img" aria-label="Training loss curve"></canvas>
+    </div>
+
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script>
+let rawData = [];
+let chartInstance = null;
+let xMode = 'step';
+let visibleSeries = { loss: true, grad: false, acc: false, lr: false };
+let smoothFactor = 0;
+
+const SERIES_CONFIG = {
+  loss:  { label: 'Loss',          color: '#58a6ff', yAxis: 'y'  },
+  grad:  { label: 'Grad Norm',     color: '#f85149', yAxis: 'y1' },
+  acc:   { label: 'Token Acc',     color: '#3fb950', yAxis: 'y2' },
+  lr:    { label: 'Learning Rate', color: '#d29922', yAxis: 'y3' },
+};
+
+function smoothData(arr, factor) {
+  if (factor === 0) return arr;
+  const out = [];
+  let last = arr[0];
+  for (const v of arr) {
+    last = last * factor + v * (1 - factor);
+    out.push(last);
+  }
+  return out;
+}
+
+function parseLog(text) {
+  const pattern = /\{'loss':\s*'([\d.]+)'.*?'grad_norm':\s*'([\d.]+)'.*?'learning_rate':\s*'([\de.+-]+)'.*?'token_acc':\s*'([\d.]+)'.*?'epoch':\s*'([\d.]+)'.*?'global_step\/max_steps':\s*'(\d+)\/(\d+)'/g;
+  const results = [];
+  let m;
+  while ((m = pattern.exec(text)) !== null) {
+    results.push({
+      loss: parseFloat(m[1]),
+      grad: parseFloat(m[2]),
+      lr: parseFloat(m[3]),
+      acc: parseFloat(m[4]),
+      epoch: parseFloat(m[5]),
+      step: parseInt(m[6]),
+      maxSteps: parseInt(m[7]),
+    });
+  }
+  return results;
+}
+
+function buildChart() {
+  if (!rawData.length) return;
+  const labels = rawData.map(d => xMode === 'step' ? d.step : parseFloat(d.epoch.toFixed(2)));
+  const datasets = [];
+
+  Object.entries(SERIES_CONFIG).forEach(([key, cfg]) => {
+    if (!visibleSeries[key]) return;
+    const raw = rawData.map(d => d[key]);
+    const data = smoothData(raw, smoothFactor);
+    datasets.push({
+      label: cfg.label,
+      data,
+      borderColor: cfg.color,
+      backgroundColor: cfg.color + '18',
+      borderWidth: 1.8,
+      pointRadius: rawData.length > 80 ? 0 : 3,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      fill: key === 'loss',
+      yAxisID: cfg.yAxis,
+    });
+  });
+
+  const scales = {
+    x: {
+      ticks: { color: '#57606a', font: { size: 11 }, maxTicksLimit: 12 },
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      title: { display: true, text: xMode === 'step' ? 'Step' : 'Epoch', color: '#57606a', font: { size: 11 } },
+    },
+    y: {
+      display: visibleSeries.loss,
+      ticks: { color: '#0969da', font: { size: 11 } },
+      grid: { color: 'rgba(0,0,0,0.06)' },
+      title: { display: true, text: 'Loss', color: '#0969da', font: { size: 11 } },
+    },
+    y1: {
+      display: visibleSeries.grad,
+      position: 'right',
+      ticks: { color: '#f85149', font: { size: 11 } },
+      grid: { drawOnChartArea: false },
+      title: { display: true, text: 'Grad Norm', color: '#f85149', font: { size: 11 } },
+    },
+    y2: {
+      display: visibleSeries.acc,
+      position: 'right',
+      ticks: { color: '#3fb950', font: { size: 11 }, callback: v => (v * 100).toFixed(1) + '%' },
+      grid: { drawOnChartArea: false },
+      title: { display: true, text: 'Token Acc', color: '#3fb950', font: { size: 11 } },
+    },
+    y3: {
+      display: visibleSeries.lr,
+      position: 'right',
+      ticks: { color: '#d29922', font: { size: 11 }, callback: v => v.toExponential(2) },
+      grid: { drawOnChartArea: false },
+      title: { display: true, text: 'LR', color: '#d29922', font: { size: 11 } },
+    },
+  };
+
+  if (chartInstance) { chartInstance.destroy(); }
+
+  chartInstance = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#ffffff',
+          borderColor: 'rgba(0,0,0,0.15)',
+          borderWidth: 1,
+          titleColor: '#1a1a2e',
+          bodyColor: '#57606a',
+          padding: 10,
+          callbacks: {
+            title: items => (xMode === 'step' ? `Step ${items[0].label}` : `Epoch ${items[0].label}`),
+          }
+        },
+      },
+      scales,
+      animation: { duration: 400 },
+    }
+  });
+
+  updateLegend();
+}
+
+function updateLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = Object.entries(SERIES_CONFIG)
+    .filter(([k]) => visibleSeries[k])
+    .map(([k, c]) => `<span class="legend-item"><span class="legend-dot" style="background:${c.color}"></span>${c.label}</span>`)
+    .join('');
+}
+
+function setXAxis(mode) {
+  xMode = mode;
+  document.getElementById('xStep').classList.toggle('active', mode === 'step');
+  document.getElementById('xEpoch').classList.toggle('active', mode === 'epoch');
+  buildChart();
+}
+
+function toggleSeries(key) {
+  visibleSeries[key] = !visibleSeries[key];
+  const ids = { loss: 'showLoss', grad: 'showGrad', acc: 'showAcc', lr: 'showLR' };
+  document.getElementById(ids[key]).classList.toggle('active', visibleSeries[key]);
+  buildChart();
+}
+
+function updateStats() {
+  const losses = rawData.map(d => d.loss);
+  document.getElementById('finalLoss').textContent = losses[losses.length - 1].toFixed(4);
+  document.getElementById('minLoss').textContent = Math.min(...losses).toFixed(4);
+  document.getElementById('initLoss').textContent = losses[0].toFixed(4);
+  document.getElementById('totalSteps').textContent = rawData[rawData.length - 1].step;
+  document.getElementById('finalEpoch').textContent = rawData[rawData.length - 1].epoch.toFixed(2);
+  document.getElementById('finalAcc').textContent = (rawData[rawData.length - 1].acc * 100).toFixed(2) + '%';
+}
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    rawData = parseLog(e.target.result);
+    if (!rawData.length) {
+      alert('未能从文件中提取到 loss 数据，请确认日志格式是否包含 {\'loss\': \'...\', ...} 格式的训练指标。');
+      return;
+    }
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('parseInfo').textContent = `· 解析到 ${rawData.length} 条记录`;
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('dropZone').style.display = 'none';
+    updateStats();
+    buildChart();
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+
+document.getElementById('smoothSlider').addEventListener('input', e => {
+  smoothFactor = parseFloat(e.target.value);
+  document.getElementById('smoothVal').textContent = smoothFactor.toFixed(2);
+  if (rawData.length) buildChart();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!chartInstance) return;
+  const canvas = document.getElementById('mainChart');
+
+  const offscreen = document.createElement('canvas');
+  offscreen.width = canvas.width;
+  offscreen.height = canvas.height;
+  const ctx = offscreen.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, offscreen.width, offscreen.height);
+  ctx.drawImage(canvas, 0, 0);
+
+  const link = document.createElement('a');
+  link.download = 'loss_curve.png';
+  link.href = offscreen.toDataURL('image/png');
+  link.click();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  rawData = [];
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('fileInput').value = '';
+});
+</script>
+</body>
+</html>

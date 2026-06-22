@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 耗时分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface2: #f0f2f5;
+  --surface3: #e8eaed;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1f2328;
+  --text2: #57606a;
+  --text3: #8c959f;
+  --accent: #0969da;
+  --accent-bg: rgba(9,105,218,0.07);
+  --green: #1a7f37;
+  --green-bg: rgba(26,127,55,0.08);
+  --amber: #9a6700;
+  --amber-bg: rgba(154,103,0,0.08);
+  --red: #cf222e;
+  --red-bg: rgba(207,34,46,0.08);
+  --purple: #6e40c9;
+  --purple-bg: rgba(110,64,201,0.08);
+  --teal: #0e7490;
+  --teal-bg: rgba(14,116,144,0.08);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  padding: 24px;
+  font-size: 14px;
+}
+
+/* ---- HEADER ---- */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border2);
+}
+.header-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #0969da, #218bff);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.header h1 { font-size: 17px; font-weight: 600; color: var(--text); }
+.header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* ---- UPLOAD ---- */
+.upload-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: 12px;
+  padding: 52px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--surface);
+  margin-bottom: 24px;
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.upload-zone input { display: none; }
+.upload-icon { font-size: 42px; margin-bottom: 10px; opacity: 0.5; }
+.upload-zone h2 { font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+.upload-zone p { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* ---- BUTTONS ---- */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px;
+  font-weight: 500; cursor: pointer; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text); transition: all 0.15s;
+  font-family: inherit; white-space: nowrap;
+}
+.btn:hover { background: var(--surface2); border-color: var(--accent); color: var(--accent); }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: #0969da; border-color: #0969da; color: #fff; }
+.btn-primary:hover { background: #218bff; border-color: #218bff; color: #fff; }
+
+/* ---- TOOLBAR ---- */
+.toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+}
+.toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.file-badge {
+  font-size: 11px; font-family: monospace;
+  color: var(--accent); background: var(--accent-bg);
+  padding: 3px 8px; border-radius: 4px; max-width: 280px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.parse-info { font-size: 12px; color: var(--text2); }
+
+/* ---- FILTER PANEL ---- */
+.filter-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;
+  display: flex; gap: 24px; flex-wrap: wrap; align-items: center;
+}
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 12px; color: var(--text2); white-space: nowrap; }
+.filter-input {
+  padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text); font-size: 12px; width: 80px;
+  font-family: monospace;
+}
+.filter-input:focus { outline: none; border-color: var(--accent); }
+.filter-toggle {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 12px; color: var(--text2); user-select: none;
+}
+.filter-toggle input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+.filter-toggle.active-label { color: var(--accent); font-weight: 500; }
+
+/* ---- CONFIG INFO SECTION ---- */
+.config-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 20px;
+}
+.config-section-title {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;
+}
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.config-item {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--surface2); border-radius: 8px; padding: 10px 12px;
+}
+.config-key { font-size: 11px; color: var(--text3); }
+.config-val {
+  font-size: 13px; font-weight: 600; color: var(--text);
+  font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.config-val.accent { color: var(--accent); }
+.config-val.green { color: var(--green); }
+.config-val.amber { color: var(--amber); }
+.config-val.purple { color: var(--purple); }
+.config-val.teal { color: var(--teal); }
+
+/* ---- STATS GRID ---- */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; }
+.stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; font-family: monospace; }
+.stat-value.blue { color: var(--accent); }
+.stat-value.green { color: var(--green); }
+.stat-value.amber { color: var(--amber); }
+.stat-value.red { color: var(--red); }
+.stat-value.purple { color: var(--purple); }
+.stat-value.teal { color: var(--teal); }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* ---- CHART PANEL ---- */
+.chart-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 18px 20px; margin-bottom: 16px;
+}
+.chart-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+}
+.chart-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.7px; }
+.chart-note { font-size: 11px; color: var(--text3); }
+#chart-wrapper { position: relative; width: 100%; height: 340px; }
+
+/* ---- DISTRIBUTION ---- */
+.dist-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+#hist-wrapper { position: relative; width: 100%; height: 240px; }
+#mem-wrapper { position: relative; width: 100%; height: 240px; }
+
+/* ---- ANOMALY TABLE ---- */
+.anomaly-section {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px; margin-bottom: 16px;
+}
+.anomaly-header {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;
+}
+.badge.red { background: var(--red-bg); color: var(--red); }
+.badge.amber { background: var(--amber-bg); color: var(--amber); }
+.badge.green { background: var(--green-bg); color: var(--green); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  text-align: left; padding: 8px 10px;
+  font-size: 11px; color: var(--text3); font-weight: 600;
+  border-bottom: 1px solid var(--border2); white-space: nowrap;
+}
+td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.td-step { font-family: monospace; font-weight: 600; color: var(--accent); }
+.td-time { font-family: monospace; font-weight: 600; }
+.td-time.slow { color: var(--red); }
+.td-time.fast { color: var(--green); }
+.td-delta { font-family: monospace; font-size: 11px; }
+.td-delta.pos { color: var(--red); }
+.td-delta.neg { color: var(--green); }
+
+/* ---- HIDDEN ---- */
+#result { display: none; }
+
+/* ---- DIVIDER ---- */
+.section-title {
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px; margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  body { padding: 14px; }
+  .dist-row { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">⏱</div>
+  <div>
+    <h1>Step 耗时分析</h1>
+    <p>解析训练日志 · 分析 Step 性能 · 识别异常耗时 · 提取训练配置</p>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="upload-zone" id="dropZone">
+  <input type="file" id="fileInput" accept=".log,.txt">
+  <div class="upload-icon">📂</div>
+  <h2>拖拽日志文件到此处，或点击上传</h2>
+  <p>支持 Swift / HuggingFace Trainer 格式 · 自动提取 train_speed、配置参数<br>自动过滤重复记录，支持跳过 warmup 和末尾步骤</p>
+  <br>
+  <label for="fileInput" class="btn btn-primary" style="cursor:pointer">选择文件</label>
+</div>
+
+<!-- MAIN RESULT -->
+<div id="result">
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="file-badge" id="fileName">—</span>
+      <span class="parse-info" id="parseInfo"></span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-primary" id="exportBtn">⬇ 导出 PNG</button>
+      <button class="btn" id="resetBtn">↺ 重新上传</button>
+    </div>
+  </div>
+
+  <!-- FILTER PANEL -->
+  <div class="filter-panel">
+    <div class="filter-group" style="flex-wrap:wrap;gap:8px">
+      <label class="filter-toggle">
+        <input type="checkbox" id="skipWarmup" checked>
+        <span>跳过 Warmup</span>
+      </label>
+      <div class="filter-group" id="warmupGroup">
+        <select class="filter-input" id="warmupMode" style="width:72px">
+          <option value="ratio">比例</option>
+          <option value="steps">步数</option>
+        </select>
+        <input class="filter-input" id="warmupVal" type="number" step="0.01" min="0" style="width:76px" placeholder="自动">
+        <span class="filter-label" id="warmupUnit">（0~1）</span>
+        <span id="warmupRange" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+    </div>
+    <div class="filter-group">
+      <label class="filter-toggle" id="skipTailLabel">
+        <input type="checkbox" id="skipTail">
+        <span>跳过末尾步骤</span>
+      </label>
+      <div class="filter-group" id="tailGroup" style="display:none">
+        <span class="filter-label">跳过后</span>
+        <input class="filter-input" id="tailN" type="number" value="5" min="1" max="50">
+        <span class="filter-label">步</span>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">异常阈值 ×</span>
+      <input class="filter-input" id="anomalyThresh" type="number" value="1.5" step="0.1" min="1.1" max="5">
+      <span class="filter-label">σ</span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">X 轴</span>
+      <select class="filter-input" id="xAxisMode" style="width:90px">
+        <option value="step">Step</option>
+        <option value="index">序号</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TRAINING CONFIG -->
+  <div class="config-section" id="configSection" style="display:none">
+    <div class="config-section-title">训练配置 · Training Config</div>
+    <div class="config-grid" id="configGrid"></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="section-title">性能统计</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">平均耗时 (s/step)</div>
+      <div class="stat-value blue" id="statMean">—</div>
+      <div class="stat-sub" id="statMeanSub"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">中位数耗时 (s/step)</div>
+      <div class="stat-value teal" id="statMedian">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最快 Step (s)</div>
+      <div class="stat-value green" id="statMin">—</div>
+      <div class="stat-sub" id="statMinStep"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">最慢 Step (s)</div>
+      <div class="stat-value red" id="statMax">—</div>
+      <div class="stat-sub" id="statMaxStep"></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">标准差 (s)</div>
+      <div class="stat-value amber" id="statStd">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">P95 耗时 (s)</div>
+      <div class="stat-value purple" id="statP95">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">峰值显存 (GiB)</div>
+      <div class="stat-value red" id="statMaxMem">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">有效样本数</div>
+      <div class="stat-value blue" id="statN">—</div>
+      <div class="stat-sub" id="statNSub"></div>
+    </div>
+  </div>
+
+  <!-- MAIN CHART -->
+  <div class="section-title">Step 耗时曲线</div>
+  <div class="chart-panel">
+    <div class="chart-header">
+      <span class="chart-title">train_speed (s/it)</span>
+      <span class="chart-note" id="chartNote"></span>
+    </div>
+    <div id="chart-wrapper">
+      <canvas id="mainChart"></canvas>
+    </div>
+  </div>
+
+  <!-- DIST + MEM -->
+  <div class="dist-row">
+    <div class="chart-panel" style="margin-bottom:0">
+      <div class="chart-header">
+        <span class="chart-title">耗时分布 Histogram</span>
+      </div>
+      <div id="hist-wrapper"><canvas id="histChart"></canvas></div>
+    </div>
+    <div class="chart-panel" style="margin-bottom:0">
+      <div class="chart-header">
+        <span class="chart-title">显存使用 memory(GiB)</span>
+      </div>
+      <div id="mem-wrapper"><canvas id="memChart"></canvas></div>
+    </div>
+  </div>
+  <div style="margin-bottom:20px"></div>
+
+  <!-- ANOMALY TABLE -->
+  <div class="anomaly-section">
+    <div class="anomaly-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-title" style="margin:0">异常 Step 检测</span>
+        <span class="badge red" id="anomalyCount">0 个异常</span>
+      </div>
+      <span style="font-size:11px;color:var(--text3)" id="anomalyDesc"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="anomalyTable">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>耗时 (s)</th>
+            <th>偏差 (σ)</th>
+            <th>显存 (GiB)</th>
+            <th>Epoch</th>
+            <th>较均值</th>
+          </tr>
+        </thead>
+        <tbody id="anomalyBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end #result -->
+
+<script>
+// ======================================================
+// DATA STATE
+// ======================================================
+let allRecords = [];  // all parsed, de-duped records
+let config = {};      // extracted config info
+let charts = {};
+
+// ======================================================
+// PARSE
+// ======================================================
+function parseLog(text) {
+  // 1. Extract training config from command line
+  const cfg = {};
+  const modelM = text.match(/--model\s+([\S]+)/);
+  if (modelM) {
+    // Extract model name from path
+    const parts = modelM[1].replace(/\/+$/, '').split('/');
+    cfg.model = parts[parts.length - 1] || modelM[1];
+    cfg.modelPath = modelM[1];
+  }
+  const bsM = text.match(/per_device_train_batch_size[= ](\d+)/);
+  if (bsM) cfg.bsPerDevice = bsM[1];
+  const nprocM = text.match(/nproc_per_node[= ](\d+)/);
+  if (nprocM) cfg.nproc = nprocM[1];
+  const nnodesM = text.match(/nnodes[= ](\d+)/);
+  if (nnodesM) cfg.nnodes = nnodesM[1];
+  const epochsM = text.match(/num_train_epochs[= ](\d+)/);
+  if (epochsM) cfg.numEpochs = epochsM[1];
+  const maxlenM = text.match(/max_length[= ](\d+)/);
+  if (maxlenM) cfg.maxLen = maxlenM[1];
+  const warmupM = text.match(/warmup_ratio[= ]([\d.]+)/);
+  if (warmupM) cfg.warmupRatio = warmupM[1];
+  const dsM = text.match(/--deepspeed[= ]([\S]+)/);
+  if (dsM) cfg.deepspeed = dsM[1];
+  const lrM = text.match(/learning_rate[= ]([\de.+-]+)/);
+  if (lrM) cfg.lr = lrM[1];
+  const gasM = text.match(/gradient_accumulation_steps[= ](\d+)/);
+  if (gasM) cfg.gas = gasM[1];
+  const datasetM = text.match(/--dataset\s+([\S]+)/);
+  if (datasetM) {
+    const dparts = datasetM[1].split('/');
+    cfg.dataset = dparts[dparts.length - 1] || datasetM[1];
+  }
+  // Compute global batch size
+  if (cfg.bsPerDevice && cfg.nproc && cfg.nnodes) {
+    const gas = parseInt(cfg.gas || '1');
+    cfg.globalBS = parseInt(cfg.bsPerDevice) * parseInt(cfg.nproc) * parseInt(cfg.nnodes) * gas;
+  }
+
+  // 2. Split log into segments by restart markers, keep only the last segment
+  // Restart markers: "Starting SFT task" / "Starting training" / tqdm Train: 0% 0/N reset
+  const restartRe = /Starting (?:SFT|training) task|\bTrain:\s*0%\s+0\/\d+/g;
+  const restartPositions = [];
+  let rm;
+  while ((rm = restartRe.exec(text)) !== null) {
+    restartPositions.push(rm.index);
+  }
+  // Use the last restart position as the start of the final segment
+  const segStart = restartPositions.length > 1 ? restartPositions[restartPositions.length - 1] : 0;
+  const segment = text.slice(segStart);
+  cfg.restartCount = restartPositions.length > 1 ? restartPositions.length - 1 : 0;
+
+  // 3. Extract all metric lines from the last segment
+  const pattern = /\{'loss':\s*'([\d.]+)',\s*'grad_norm':\s*'([\de.+-]+)',\s*'learning_rate':\s*'([\de.+-]+)',\s*'token_acc':\s*'([\d.]+)',\s*'epoch':\s*'([\d.]+)',\s*'global_step\/max_steps':\s*'(\d+)\/(\d+)'(?:.*?'elapsed_time':\s*'([^']*)')?(?:.*?'remaining_time':\s*'([^']*)')?(?:.*?'memory\(GiB\)':\s*'([\d.]+)')?(?:.*?'train_speed\(s\/it\)':\s*'([\d.]+)')?/g;
+
+  const seen = new Set();
+  const records = [];
+  let m;
+  while ((m = pattern.exec(segment)) !== null) {
+    const step = parseInt(m[6]);
+    if (seen.has(step)) continue; // de-duplicate: keep first occurrence per step
+    seen.add(step);
+    records.push({
+      loss: parseFloat(m[1]),
+      gradNorm: parseFloat(m[2]),
+      lr: parseFloat(m[3]),
+      tokenAcc: parseFloat(m[4]),
+      epoch: parseFloat(m[5]),
+      step: step,
+      maxSteps: parseInt(m[7]),
+      elapsedTime: m[8] || '',
+      remainingTime: m[9] || '',
+      memory: m[10] ? parseFloat(m[10]) : null,
+      trainSpeed: m[11] ? parseFloat(m[11]) : null,
+    });
+  }
+
+  // Sort by step
+  records.sort((a, b) => a.step - b.step);
+  return { records, config: cfg };
+}
+
+// ======================================================
+// FILTER
+// ======================================================
+function getWarmupEndStep() {
+  const maxSteps = allRecords.length ? allRecords[allRecords.length - 1].maxSteps : 0;
+  const mode = document.getElementById('warmupMode').value;
+  const val = document.getElementById('warmupVal').value.trim();
+  if (mode === 'steps') {
+    if (val !== '') return parseInt(val) || 0;
+    // auto: from config
+    const ratio = parseFloat(config.warmupRatio || '0.05');
+    return Math.ceil(maxSteps * ratio);
+  } else {
+    // ratio mode
+    if (val !== '') {
+      const r = parseFloat(val);
+      return isNaN(r) ? 0 : Math.ceil(maxSteps * Math.min(r, 1));
+    }
+    const ratio = parseFloat(config.warmupRatio || '0.05');
+    return Math.ceil(maxSteps * ratio);
+  }
+}
+
+function getFilteredRecords() {
+  if (!allRecords.length) return [];
+  let recs = [...allRecords];
+
+  // Skip warmup
+  if (document.getElementById('skipWarmup').checked) {
+    const warmupEnd = getWarmupEndStep();
+    recs = recs.filter(r => r.step > warmupEnd);
+  }
+
+  // Skip tail
+  if (document.getElementById('skipTail').checked) {
+    const n = parseInt(document.getElementById('tailN').value) || 5;
+    recs = recs.slice(0, Math.max(1, recs.length - n));
+  }
+
+  return recs;
+}
+
+// ======================================================
+// STATS
+// ======================================================
+function calcStats(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const mean = values.reduce((a, b) => a + b, 0) / n;
+  const median = n % 2 === 0 ? (sorted[n/2-1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)];
+  const std = Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+  const min = sorted[0];
+  const max = sorted[n - 1];
+  const p95 = sorted[Math.floor(n * 0.95)];
+  return { mean, median, std, min, max, p95, n };
+}
+
+// ======================================================
+// RENDER
+// ======================================================
+function render() {
+  const recs = getFilteredRecords();
+  if (!recs.length) return;
+
+  const speedRecs = recs.filter(r => r.trainSpeed !== null);
+  const speeds = speedRecs.map(r => r.trainSpeed);
+  const memRecs = recs.filter(r => r.memory !== null);
+
+  const st = calcStats(speeds);
+  const thresh = parseFloat(document.getElementById('anomalyThresh').value) || 1.5;
+  const xMode = document.getElementById('xAxisMode').value;
+
+  // Warmup annotation
+  const maxSteps = allRecords[allRecords.length - 1]?.maxSteps || 0;
+  const warmupEnd = getWarmupEndStep();
+  const wuMode = document.getElementById('warmupMode').value;
+  const wuNote = wuMode === 'steps'
+    ? `前 ${warmupEnd} steps`
+    : `前 ${warmupEnd} steps (ratio=${(warmupEnd/maxSteps||0).toFixed(3)})`;
+  document.getElementById('warmupRange').textContent =
+    document.getElementById('skipWarmup').checked ? `→ 跳过${wuNote}` : '';
+
+  // --- Stats cards ---
+  const minRec = speedRecs[speeds.indexOf(st.min)];
+  const maxRec = speedRecs[speeds.indexOf(st.max)];
+  document.getElementById('statMean').textContent = st.mean.toFixed(3);
+  document.getElementById('statMeanSub').textContent = `MFU ref: ${(1/st.mean).toFixed(3)} it/s`;
+  document.getElementById('statMedian').textContent = st.median.toFixed(3);
+  document.getElementById('statMin').textContent = st.min.toFixed(3);
+  document.getElementById('statMinStep').textContent = minRec ? `Step ${minRec.step}` : '';
+  document.getElementById('statMax').textContent = st.max.toFixed(3);
+  document.getElementById('statMaxStep').textContent = maxRec ? `Step ${maxRec.step}` : '';
+  document.getElementById('statStd').textContent = st.std.toFixed(4);
+  document.getElementById('statP95').textContent = st.p95.toFixed(3);
+  document.getElementById('statN').textContent = st.n;
+  document.getElementById('statNSub').textContent = `共 ${allRecords.length} 条记录`;
+
+  const peakMem = memRecs.length ? Math.max(...memRecs.map(r => r.memory)) : null;
+  document.getElementById('statMaxMem').textContent = peakMem !== null ? peakMem.toFixed(2) : '—';
+
+  // --- Chart note ---
+  const skipped = allRecords.length - recs.length;
+  document.getElementById('chartNote').textContent =
+    skipped > 0 ? `已过滤 ${skipped} 步 (warmup/tail)` : '全部步骤';
+
+  // --- Main speed chart ---
+  const labels = speedRecs.map(r => xMode === 'step' ? r.step : speedRecs.indexOf(r) + 1);
+  const anomalyThreshVal = st.mean + thresh * st.std;
+
+  const pointColors = speeds.map(v => v > anomalyThreshVal ? '#cf222e' : '#0969da');
+  const pointRadii = speeds.map(v => v > anomalyThreshVal ? 5 : (speeds.length > 100 ? 0 : 3));
+
+  destroyChart('main');
+  charts.main = new Chart(document.getElementById('mainChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'train_speed (s/it)',
+          data: speeds,
+          borderColor: '#0969da',
+          backgroundColor: 'rgba(9,105,218,0.08)',
+          borderWidth: 1.8,
+          pointRadius: pointRadii,
+          pointBackgroundColor: pointColors,
+          pointBorderColor: pointColors,
+          pointHoverRadius: 6,
+          tension: 0.2,
+          fill: true,
+        },
+        {
+          label: `均值 ${st.mean.toFixed(3)}s`,
+          data: Array(speeds.length).fill(st.mean),
+          borderColor: '#1a7f37',
+          borderWidth: 1.5,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: `异常阈值 (μ+${thresh}σ)`,
+          data: Array(speeds.length).fill(anomalyThreshVal),
+          borderColor: '#cf222e',
+          borderWidth: 1.2,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'top', labels: { font: { size: 11 }, boxWidth: 20, color: '#57606a' } },
+        tooltip: {
+          backgroundColor: '#fff',
+          borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1,
+          titleColor: '#1f2328', bodyColor: '#57606a', padding: 10,
+          callbacks: {
+            title: items => xMode === 'step' ? `Step ${items[0].label}` : `第 ${items[0].label} 步`,
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#57606a', font: { size: 11 }, maxTicksLimit: 14 },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: xMode === 'step' ? 'Global Step' : '步骤序号', color: '#57606a', font: { size: 11 } }
+        },
+        y: {
+          ticks: { color: '#57606a', font: { size: 11 }, callback: v => v.toFixed(2) + 's' },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          title: { display: true, text: 'train_speed (s/it)', color: '#57606a', font: { size: 11 } }
+        }
+      },
+      animation: { duration: 300 }
+    }
+  });
+
+  // --- Histogram ---
+  const bins = 20;
+  const binWidth = (st.max - st.min) / bins || 0.1;
+  const histCounts = Array(bins).fill(0);
+  speeds.forEach(v => {
+    const idx = Math.min(bins - 1, Math.floor((v - st.min) / binWidth));
+    histCounts[idx]++;
+  });
+  const histLabels = histCounts.map((_, i) => (st.min + i * binWidth).toFixed(2));
+  const histColors = histLabels.map(l => parseFloat(l) > anomalyThreshVal ? 'rgba(207,34,46,0.6)' : 'rgba(9,105,218,0.6)');
+
+  destroyChart('hist');
+  charts.hist = new Chart(document.getElementById('histChart'), {
+    type: 'bar',
+    data: {
+      labels: histLabels,
+      datasets: [{ label: '频次', data: histCounts, backgroundColor: histColors, borderRadius: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#57606a', font: { size: 10 }, maxTicksLimit: 8 }, grid: { display: false },
+             title: { display: true, text: 's/it', color: '#57606a', font: { size: 10 } } },
+        y: { ticks: { color: '#57606a', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' },
+             title: { display: true, text: '频次', color: '#57606a', font: { size: 10 } } }
+      },
+      animation: { duration: 300 }
+    }
+  });
+
+  // --- Memory chart ---
+  const memLabels = memRecs.map(r => xMode === 'step' ? r.step : recs.indexOf(r) + 1);
+  const memValues = memRecs.map(r => r.memory);
+  destroyChart('mem');
+  charts.mem = new Chart(document.getElementById('memChart'), {
+    type: 'line',
+    data: {
+      labels: memLabels,
+      datasets: [{
+        label: 'memory (GiB)',
+        data: memValues,
+        borderColor: '#6e40c9',
+        backgroundColor: 'rgba(110,64,201,0.08)',
+        borderWidth: 1.8,
+        pointRadius: memValues.length > 100 ? 0 : 3,
+        tension: 0.3, fill: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#57606a', font: { size: 10 }, maxTicksLimit: 8 },
+             grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { color: '#57606a', font: { size: 10 }, callback: v => v + ' G' },
+             grid: { color: 'rgba(0,0,0,0.05)' } }
+      },
+      animation: { duration: 300 }
+    }
+  });
+
+  // --- Anomaly table ---
+  const anomalies = speedRecs.filter(r => r.trainSpeed > anomalyThreshVal)
+    .sort((a, b) => b.trainSpeed - a.trainSpeed);
+  document.getElementById('anomalyCount').textContent = `${anomalies.length} 个异常`;
+  document.getElementById('anomalyDesc').textContent =
+    `阈值: μ + ${thresh}σ = ${anomalyThreshVal.toFixed(3)}s`;
+
+  const tbody = document.getElementById('anomalyBody');
+  tbody.innerHTML = '';
+  if (anomalies.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">🎉 未检测到异常步骤</td></tr>';
+  } else {
+    anomalies.slice(0, 50).forEach(r => {
+      const sigma = ((r.trainSpeed - st.mean) / st.std).toFixed(2);
+      const delta = r.trainSpeed - st.mean;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="td-step">Step ${r.step}</td>
+        <td class="td-time slow">${r.trainSpeed.toFixed(3)}s</td>
+        <td class="td-time slow">+${sigma}σ</td>
+        <td>${r.memory !== null ? r.memory.toFixed(2) + ' G' : '—'}</td>
+        <td>${r.epoch.toFixed(2)}</td>
+        <td class="td-delta pos">+${delta.toFixed(3)}s (+${(delta/st.mean*100).toFixed(1)}%)</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+// ======================================================
+// RENDER CONFIG
+// ======================================================
+function renderConfig(cfg) {
+  const items = [];
+  if (cfg.model) items.push({ key: '模型 Model', val: cfg.model, cls: 'accent' });
+  if (cfg.globalBS) items.push({ key: '全局 Batch Size', val: cfg.globalBS, cls: 'green' });
+  if (cfg.bsPerDevice) items.push({ key: '每卡 Batch Size', val: cfg.bsPerDevice, cls: '' });
+  if (cfg.nproc && cfg.nnodes) items.push({ key: '并行规模', val: `${cfg.nnodes} nodes × ${cfg.nproc} GPU`, cls: 'purple' });
+  if (cfg.numEpochs) items.push({ key: 'Epochs', val: cfg.numEpochs, cls: '' });
+  if (cfg.maxLen) items.push({ key: 'Max Length', val: cfg.maxLen, cls: '' });
+  if (cfg.lr) items.push({ key: 'Learning Rate', val: cfg.lr, cls: 'amber' });
+  if (cfg.warmupRatio) items.push({ key: 'Warmup Ratio', val: cfg.warmupRatio, cls: '' });
+  if (cfg.deepspeed) items.push({ key: 'DeepSpeed', val: cfg.deepspeed, cls: 'teal' });
+  if (cfg.gas) items.push({ key: 'Grad Accum Steps', val: cfg.gas, cls: '' });
+  if (cfg.dataset) items.push({ key: 'Dataset', val: cfg.dataset, cls: '' });
+  if (cfg.restartCount > 0) items.push({ key: '重启次数', val: `${cfg.restartCount} 次（已过滤历史段）`, cls: 'red' });
+
+  if (items.length === 0) {
+    document.getElementById('configSection').style.display = 'none';
+    return;
+  }
+  document.getElementById('configSection').style.display = 'block';
+  const grid = document.getElementById('configGrid');
+  grid.innerHTML = items.map(it => `
+    <div class="config-item">
+      <span class="config-key">${it.key}</span>
+      <span class="config-val ${it.cls}" title="${it.val}">${it.val}</span>
+    </div>
+  `).join('');
+}
+
+// ======================================================
+// UTILS
+// ======================================================
+function destroyChart(key) {
+  if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+}
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const result = parseLog(e.target.result);
+    allRecords = result.records;
+    config = result.config;
+
+    if (!allRecords.length) {
+      alert('未能从文件中提取到训练指标，请确认日志包含 {\'loss\': \'...\', \'train_speed(s/it)\': \'...\', ...} 格式。');
+      return;
+    }
+
+    const speedCount = allRecords.filter(r => r.trainSpeed !== null).length;
+    document.getElementById('fileName').textContent = file.name;
+    const restartNote = config.restartCount > 0 ? `，检测到 ${config.restartCount} 次重启（已保留最后一段）` : '';
+    document.getElementById('parseInfo').textContent =
+      `· 共 ${allRecords.length} 步，${speedCount} 步含耗时数据${restartNote}`;
+
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('result').style.display = 'block';
+
+    renderConfig(config);
+    render();
+  };
+  reader.readAsText(file);
+}
+
+// ======================================================
+// EVENTS
+// ======================================================
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+
+document.getElementById('skipWarmup').addEventListener('change', e => {
+  document.getElementById('warmupGroup').style.display = e.target.checked ? 'flex' : 'none';
+  render();
+});
+document.getElementById('warmupMode').addEventListener('change', () => {
+  const mode = document.getElementById('warmupMode').value;
+  const unitEl = document.getElementById('warmupUnit');
+  const valEl = document.getElementById('warmupVal');
+  if (mode === 'ratio') {
+    unitEl.textContent = '（0~1）';
+    valEl.step = '0.01'; valEl.max = '1';
+  } else {
+    unitEl.textContent = '步';
+    valEl.step = '1'; valEl.max = '100000';
+  }
+  valEl.value = '';
+  render();
+});
+document.getElementById('warmupVal').addEventListener('change', render);
+document.getElementById('skipTail').addEventListener('change', e => {
+  document.getElementById('tailGroup').style.display = e.target.checked ? 'flex' : 'none';
+  render();
+});
+document.getElementById('tailN').addEventListener('change', render);
+document.getElementById('anomalyThresh').addEventListener('change', render);
+document.getElementById('xAxisMode').addEventListener('change', render);
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!charts.main) return;
+  const canvas = document.getElementById('mainChart');
+  const off = document.createElement('canvas');
+  off.width = canvas.width; off.height = canvas.height;
+  const ctx = off.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, off.width, off.height);
+  ctx.drawImage(canvas, 0, 0);
+  const a = document.createElement('a');
+  a.download = 'step_timing.png';
+  a.href = off.toDataURL('image/png');
+  a.click();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  allRecords = []; config = {};
+  ['main','hist','mem'].forEach(destroyChart);
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('fileInput').value = '';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>华为云 SFS Turbo 与 阿里云 CPFS 对比报告</title>
+  <style>
+    :root {
+      --primary: #0066ff;
+      --huawei: #e41e2d;
+      --alibaba: #ff6a00;
+      --success: #00b341;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s ease-in-out;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg);
+      line-height: 1.6;
+      scroll-behavior: smooth;
+    }
+
+    .nav-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+    }
+
+    .nav-content {
+      width: min(1200px, calc(100% - 40px));
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    .page {
+      width: min(1200px, calc(100% - 40px));
+      margin: 40px auto 80px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: white;
+      border-radius: 24px;
+      padding: 60px 40px;
+      margin-bottom: 40px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -20%;
+      width: 100%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(0, 102, 255, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 102, 255, 0.2);
+      color: #60a5fa;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      border: 1px solid rgba(0, 102, 255, 0.3);
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(28px, 5vw, 42px);
+      line-height: 1.2;
+      font-weight: 800;
+      background: linear-gradient(to right, #fff, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      max-width: 800px;
+      color: #94a3b8;
+      font-size: 18px;
+      margin-bottom: 32px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    section {
+      margin-top: 48px;
+    }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h2::before {
+      content: "";
+      width: 4px;
+      height: 24px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+
+    .tag-sfs { background: rgba(228, 30, 45, 0.1); color: var(--huawei); }
+    .tag-cpfs { background: rgba(255, 106, 0, 0.1); color: var(--alibaba); }
+    .tag-ai { background: rgba(0, 102, 255, 0.1); color: var(--primary); }
+
+    .kpi {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #0f172a;
+    }
+
+    .card p {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .score {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .callout {
+      background: #eff6ff;
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+      font-size: 15px;
+      color: #1e40af;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #475569;
+      font-weight: 600;
+      text-align: left;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    tbody th {
+      background: #f8fafc;
+      color: #64748b;
+      width: 180px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e2e8f0;
+      margin-right: 4px;
+    }
+
+    .highlight-cell {
+      background: #f0f9ff !important;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .source-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 12px;
+      list-style: none;
+      padding: 0;
+    }
+
+    .source-list li {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .source-list a {
+      color: var(--primary);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .source-list a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-note {
+      background: #fff7ed;
+      border: 1px solid #ffedd5;
+      color: #9a3412;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 1024px) {
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+      .hero { padding: 40px 24px; }
+      .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-bar">
+    <div class="nav-content">
+      <div style="font-weight: 800; font-size: 18px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary);"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        StorageCompare
+      </div>
+      <div class="nav-links">
+        <a href="#summary">结论先行</a>
+        <a href="#comparison">主对比表</a>
+        <a href="#performance">性能视角</a>
+        <a href="#scenarios">典型场景</a>
+        <a href="#sources">参考来源</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <header class="hero">
+      <div class="hero-content">
+        <div class="eyebrow">
+          Enterprise Storage Comparison 2026
+        </div>
+        <h1>华为云 SFS Turbo 与 阿里云 CPFS 对比报告</h1>
+        <p>
+          深度的云文件存储技术评测：涵盖 SFS Turbo 125M SSD、CPFS 通用版及智算版。基于 2026 年最新官方规格，为您提供最专业的选型指导。
+        </p>
+        <div class="meta">
+          <span class="pill">报告日期：2026-06-06</span>
+          <span class="pill">核心维度：性能模型 / 访问协议 / 业务场景</span>
+        </div>
+      </div>
+    </header>
+
+    <section id="summary" class="panel">
+      <h2>结论先行 / Executive Summary</h2>
+      <div class="grid-3">
+        <article class="card">
+          <div class="tag tag-sfs">华为云 SFS Turbo 125M</div>
+          <div class="kpi">全能通用型 NAS</div>
+          <p>
+            打破协议壁垒，SMB/NFS 双全。适合企业级办公共享、混合云架构及对 Windows 兼容性有要求的场景。
+          </p>
+          <div class="score">✨ 核心优势：极简接入、协议面广</div>
+        </article>
+        <article class="card">
+          <div class="tag tag-cpfs">阿里云 CPFS 通用版</div>
+          <div class="kpi">高性能并行系统</div>
+          <p>
+            面向 Linux 高并发计算而生。POSIX/NFS 互通，OSS 数据流动深度集成，是高性能计算（HPC）的首选。
+          </p>
+          <div class="score">✨ 核心优势：并发处理、海量文件</div>
+        </article>
+        <article class="card">
+          <div class="tag tag-ai">阿里云 CPFS 智算版</div>
+          <div class="kpi">大模型 AI 专属</div>
+          <p>
+            为智算而生的巅峰之作。端到端 RDMA 适配，极限吞吐与极低时延，支撑大模型训练的 Checkpoint 极速回写。
+          </p>
+          <div class="score">✨ 核心优势：极限性能、RDMA 专配</div>
+        </article>
+      </div>
+      <div class="callout">
+        <strong>💡 决策引擎：</strong> 
+        追求 <strong>“好用与兼容”</strong> 选 SFS Turbo；
+        追求 <strong>“计算效率与 OSS 联动”</strong> 选 CPFS 通用版；
+        追求 <strong>“AI 极限性能与 RDMA”</strong> 选 CPFS 智算版。
+      </div>
+    </section>
+
+    <section id="comparison" class="panel">
+      <h2>主对比表 / Full Comparison</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 18%;">对比项</th>
+              <th>华为云 SFS Turbo 125M</th>
+              <th>阿里云 CPFS 通用版</th>
+              <th>阿里云 CPFS 智算版</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>产品定位</th>
+              <td>通用高性能 NAS</td>
+              <td>HPC/AI 并行文件系统</td>
+              <td>AIGC/RDMA 智算存储</td>
+            </tr>
+            <tr>
+              <th>支持协议</th>
+              <td class="highlight-cell">NFSv3 / SMB 2.0-3.0</td>
+              <td>POSIX / NFSv3</td>
+              <td>仅限 POSIX</td>
+            </tr>
+            <tr>
+              <th>适用终端</th>
+              <td class="highlight-cell">Linux / Windows 全兼容</td>
+              <td>Linux 导向</td>
+              <td>PAI / ACS / 灵骏专用</td>
+            </tr>
+            <tr>
+              <th>性能基线</th>
+              <td>125MB/s per TiB</td>
+              <td>100 / 200MB/s per TiB</td>
+              <td class="highlight-cell">读 400 / 写 200MB/s per TiB</td>
+            </tr>
+            <tr>
+              <th>最大吞吐</th>
+              <td>默认 20GB/s (可申请 2TB/s)</td>
+              <td>20GB/s (部分可达 100GB/s)</td>
+              <td class="highlight-cell">最高 2TB/s (智算优化)</td>
+            </tr>
+            <tr>
+              <th>平均时延</th>
+              <td>1 - 3ms</td>
+              <td>0.4 - 0.8ms</td>
+              <td class="highlight-cell">读 0.25ms / 写 0.6ms</td>
+            </tr>
+            <tr>
+              <th>数据流动</th>
+              <td>基础导入/导出</td>
+              <td class="highlight-cell">成熟 OSS 冷热联动</td>
+              <td>AI 任务级数据流动</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="performance" class="panel">
+      <h2>标准化性能换算 / Benchmarks</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+        * 基于线性性能模型换算，实际性能受地域及后端规格限制。
+      </p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>规模视角</th>
+              <th>SFS Turbo 125M</th>
+              <th>CPFS 通用版 (200)</th>
+              <th>CPFS 智算版 (读)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>10 TiB</th>
+              <td>1.25 GB/s</td>
+              <td>2.0 GB/s</td>
+              <td class="highlight-cell">4.0 GB/s</td>
+            </tr>
+            <tr>
+              <th>100 TiB</th>
+              <td>12.5 GB/s</td>
+              <td>20.0 GB/s</td>
+              <td class="highlight-cell">40.0 GB/s</td>
+            </tr>
+            <tr>
+              <th>单客户端上限</th>
+              <td>共享口径</td>
+              <td>1.1 GB/s (缓存型)</td>
+              <td class="highlight-cell">25 GB/s (RDMA)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="scenarios" class="panel">
+      <h2>应用场景深度解析 / Scenarios</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="margin-top:0">为什么选择 CPFS 通用版？</h3>
+          <ul style="padding-left: 20px; font-size: 14px; color: var(--text-muted);">
+            <li><strong>Fileset 隔离：</strong> 方便在同一文件系统中管理不同项目的数据。</li>
+            <li><strong>OSS 联动：</strong> 自动将非活跃数据转储到 OSS，降低存储成本。</li>
+            <li><strong>POSIX 语义：</strong> 完美支持需要强一致性与锁机制的并行应用。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0">华为云 SFS Turbo 的独特性</h3>
+          <ul style="padding-left: 20px; font-size: 14px; color: var(--text-muted);">
+            <li><strong>跨 VPC 自由度：</strong> 通过云连接（CC）轻松实现全球办公。</li>
+            <li><strong>Windows 友好：</strong> 业界少有的支持高性能 SMB 协议的 SSD 云文件存储。</li>
+            <li><strong>备份与审计：</strong> 内置企业级快照与安全审计功能。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources" class="panel">
+      <h2>参考来源 / Official Links</h2>
+      <ul class="source-list">
+        <li><a href="https://support.huaweicloud.com/productdesc-sfsturbo/sfsturbo_01_0005.html">华为云：SFS Turbo 类型详解</a></li>
+        <li><a href="https://help.aliyun.com/zh/cpfs/product-overview">阿里云：CPFS 产品概览</a></li>
+        <li><a href="https://help.aliyun.com/zh/cpfs/product-specifications">阿里云：CPFS 规格参数</a></li>
+        <li><a href="https://help.aliyun.com/zh/cpfs/bmcpfs/product-overview/what-is-cpfs-for-lingjun/">阿里云：CPFS 智算版简介</a></li>
+      </ul>
+      <div class="footer-note">
+        <strong>声明：</strong> 本对比仅供参考，具体指标受可用区（AZ）、云平台版本更新及具体创建时间的影响。建议在重大决策前联系原厂架构师进行实测（PoC）。
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>中国芯片厂商主流产品分析报告</title>
+  <style>
+    :root {
+      --bg: #efe7da;
+      --paper: #fffaf3;
+      --ink: #1f2326;
+      --muted: #645d57;
+      --line: #dccdbb;
+      --red: #b33a2f;
+      --brick: #d96c42;
+      --teal: #1d6663;
+      --mint: #4d8b84;
+      --gold: #8b6b30;
+      --sand: #b59c78;
+      --slate: #55636c;
+      --forest: #456856;
+      --shadow: 0 20px 60px rgba(70, 45, 20, 0.10);
+      --maxw: 1240px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(179,58,47,0.10), transparent 30%),
+        radial-gradient(circle at 100% 0%, rgba(29,102,99,0.10), transparent 24%),
+        linear-gradient(180deg, #e8dfd0 0%, var(--bg) 22%, #f4eee4 100%);
+      font: 16px/1.65 "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+    }
+    .page {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 24px 18px 64px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      align-items: stretch;
+      background:
+        linear-gradient(140deg, rgba(95, 24, 18, 0.96), rgba(163, 64, 51, 0.94));
+      color: #fff8f0;
+      border-radius: 30px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      right: -60px;
+      top: -120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 68%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 10px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 12px 0 12px;
+      font-size: clamp(34px, 5vw, 64px);
+      line-height: 0.96;
+      letter-spacing: -0.04em;
+    }
+    .hero p {
+      margin: 0 0 18px;
+      max-width: 700px;
+      color: rgba(255,248,240,0.88);
+      font-size: 17px;
+    }
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .hero-tags span {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.14);
+      font-size: 13px;
+    }
+    .hero-panel {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      padding: 18px;
+      backdrop-filter: blur(6px);
+      align-self: stretch;
+    }
+    .hero-panel h2 {
+      margin: 0 0 14px;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,248,240,0.72);
+    }
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .quick-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+    }
+    .quick-item b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 18px;
+      color: #fffaf4;
+    }
+    .quick-item span {
+      display: block;
+      color: rgba(255,248,240,0.8);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .nav-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 4px;
+    }
+    .nav-pills a {
+      text-decoration: none;
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.52);
+      font-size: 14px;
+    }
+    .nav-pills a:hover { color: var(--red); border-color: #d9b5a4; }
+    .section {
+      margin-top: 20px;
+      background: var(--paper);
+      border: 1px solid rgba(120,100,70,0.10);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+      align-items: end;
+      gap: 14px 22px;
+      margin-bottom: 18px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(24px, 3.3vw, 34px);
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      color: #23403f;
+    }
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 680px;
+      font-size: 14px;
+      justify-self: end;
+      text-align: right;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .stat-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: #fffdf8;
+      border: 1px solid rgba(120,100,70,0.10);
+      min-height: 160px;
+    }
+    .stat-value {
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 0.95;
+      font-weight: 700;
+      margin-bottom: 10px;
+      letter-spacing: -0.04em;
+    }
+    .stat-label {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .stat-note {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .tone-red .stat-value, .tone-red h3, .tone-red h4 { color: var(--red); }
+    .tone-brick .stat-value, .tone-brick h3, .tone-brick h4 { color: var(--brick); }
+    .tone-teal .stat-value, .tone-teal h3, .tone-teal h4 { color: var(--teal); }
+    .tone-mint .stat-value, .tone-mint h3, .tone-mint h4 { color: var(--mint); }
+    .tone-gold .stat-value, .tone-gold h3, .tone-gold h4 { color: var(--gold); }
+    .tone-sand .stat-value, .tone-sand h3, .tone-sand h4 { color: var(--sand); }
+    .tone-slate .stat-value, .tone-slate h3, .tone-slate h4 { color: var(--slate); }
+    .tone-forest .stat-value, .tone-forest h3, .tone-forest h4 { color: var(--forest); }
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .insight-card {
+      padding: 18px;
+      border-radius: 24px;
+      background: #fffdf8;
+      border: 1px solid rgba(120,100,70,0.10);
+    }
+    .insight-card h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+    .insight-card .lead {
+      margin: 0 0 12px;
+      font-size: 15px;
+      color: #2c312f;
+      font-weight: 700;
+    }
+    .insight-card ul, .compare-card ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .split {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: start;
+    }
+    .split .note-box {
+      border-radius: 24px;
+      background: linear-gradient(180deg, #f7f1e7, #fffaf3);
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+    .note-box h3 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      color: #6a533f;
+    }
+    .note-box ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .arch-grid {
+      display: grid;
+      gap: 24px;
+    }
+    .arch-card {
+      padding: 24px 24px 22px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, #fffdf8 0%, #fbf7ef 100%);
+      border: 1px solid rgba(120,100,70,0.10);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .arch-card h3 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 3vw, 32px);
+      line-height: 1.04;
+      color: #26403f;
+      letter-spacing: -0.02em;
+    }
+    .arch-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 760px;
+    }
+    .arch-card svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #fffaf4 0%, #fdf7ef 100%);
+    }
+    .vendors {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .vendor-card {
+      padding: 16px;
+      border-radius: 24px;
+      background: #fffdf8;
+      border: 1px solid rgba(120,100,70,0.10);
+    }
+    .vendor-top {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .vendor-top h4 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.05;
+    }
+    .lane {
+      display: inline-block;
+      width: fit-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.04);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .vendor-card dl {
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+    .vendor-card dt {
+      font-size: 12px;
+      color: #8a8178;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .vendor-card dd {
+      margin: 0;
+      font-size: 14px;
+      color: #343434;
+    }
+    .compare-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .compare-card {
+      padding: 18px;
+      border-radius: 24px;
+      background: #fffdf8;
+      border: 1px solid rgba(120,100,70,0.10);
+    }
+    .compare-card h4 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+    .takeaways {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .takeaway {
+      padding: 18px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #f8f2e8, #fffaf3);
+      border: 1px solid var(--line);
+    }
+    .takeaway b {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 22px;
+      color: #26403f;
+    }
+    .takeaway span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    details {
+      border-radius: 20px;
+      background: #fbf7ef;
+      border: 1px dashed var(--line);
+      padding: 14px 16px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: #5a4635;
+    }
+    .sources {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .sources a {
+      color: var(--teal);
+      text-decoration: none;
+    }
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    @media (max-width: 1080px) {
+      .hero, .split {
+        grid-template-columns: 1fr;
+      }
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+      .section-head p {
+        justify-self: start;
+        text-align: left;
+      }
+      .stats, .insights, .vendors, .compare-grid, .takeaways {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 720px) {
+      .page {
+        padding: 16px 12px 36px;
+      }
+      .hero, .section {
+        border-radius: 22px;
+        padding: 18px;
+      }
+      .stats, .insights, .vendors, .compare-grid, .takeaways {
+        grid-template-columns: 1fr;
+      }
+      .quick-grid {
+        grid-template-columns: 1fr;
+      }
+      .section-head {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero" id="top">
+      <div>
+        <span class="eyebrow">China Chip Report / Visual Edition</span>
+        <h1>中国芯片厂商<br>主流产品与架构图解</h1>
+        <p>这一版不再把长报告原样搬进网页，而是改成更适合汇报的发布页结构：先看市场格局，再看 Top3，再用 SVG 把 AI 芯片、CPU、手机 SoC 三条架构路线说明白。</p>
+        <div class="hero-tags">
+          <span>AI 加速器</span>
+          <span>通用 CPU</span>
+          <span>手机 SoC</span>
+          <span>Top3 vs Others</span>
+          <span>SVG 架构说明</span>
+        </div>
+      </div>
+      <aside class="hero-panel">
+        <h2>一眼判断</h2>
+        <div class="quick-grid">
+          <div class="quick-item"><b>华为</b><span>最像完整平台公司。强在集群、生态、行业交付。</span></div>
+          <div class="quick-item"><b>阿里</b><span>最强云内闭环。强在 PPU + Qwen + PAI + 迁移兼容。</span></div>
+          <div class="quick-item"><b>海光</b><span>最吃兼容红利。适合低迁移替代和通用政企业务。</span></div>
+          <div class="quick-item"><b>龙芯</b><span>最强调 ISA 主权。技术意义大于短期规模。</span></div>
+        </div>
+      </aside>
+    </header>
+
+    <nav class="nav-pills">
+      <a href="#kpi">关键数字</a>
+      <a href="#market">市场格局</a>
+      <a href="#architecture">架构说明</a>
+      <a href="#vendors">厂商速览</a>
+      <a href="#compare">Top3 对比</a>
+      <a href="#takeaways">结论</a>
+    </nav>
+
+    <section class="section" id="kpi">
+      <div class="section-head">
+        <h2>关键数字</h2>
+        <p>只保留最有解释力的指标，先看格局，再决定要不要进入更细的技术讨论。</p>
+      </div>
+      <div class="stats">
+    <article class="stat-card tone-red">
+      <div class="stat-value">41%</div>
+      <div class="stat-label">2025 中国 AI 加速服务器本土份额</div>
+      <div class="stat-note">国产芯片已经从“能用”转向“规模交付”。</div>
+    </article>
+    
+    <article class="stat-card tone-brick">
+      <div class="stat-value">81.2 万</div>
+      <div class="stat-label">华为昇腾本土出货</div>
+      <div class="stat-note">本土第一，领先优势最明显。</div>
+    </article>
+    
+    <article class="stat-card tone-teal">
+      <div class="stat-value">26.5 万</div>
+      <div class="stat-label">阿里 PPU 本土出货</div>
+      <div class="stat-note">云内生路线，位列本土第二。</div>
+    </article>
+    
+    <article class="stat-card tone-gold">
+      <div class="stat-value">10%</div>
+      <div class="stat-label">UNISOC 全球手机 AP 份额</div>
+      <div class="stat-note">中低端 5G SoC 仍有规模优势。</div>
+    </article>
+    </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>三条赛道，一页看懂</h2>
+        <p>AI 芯片看平台和集群，CPU 看兼容与生态，手机 SoC 看异构协同与成本性能比。</p>
+      </div>
+      <div class="insights">
+    <article class="insight-card tone-red">
+      <h3>AI 加速器</h3>
+      <p class="lead">华为领跑，阿里第二，寒武纪/昆仑芯争第三极。</p>
+      <ul><li>比拼重点已经从单卡参数转向集群交付、算子覆盖和模型迁移。</li><li>华为强在平台闭环，阿里强在云内协同，寒武纪/昆仑芯强在专用路线聚焦。</li></ul>
+    </article>
+    
+    <article class="insight-card tone-teal">
+      <h3>通用 CPU</h3>
+      <p class="lead">海光、鲲鹏、飞腾、龙芯走的是四条不同的价值路线。</p>
+      <ul><li>海光吃到 x86 兼容红利，适合低迁移替代。</li><li>鲲鹏偏平台，飞腾偏行业，龙芯偏自主 ISA 主权。</li></ul>
+    </article>
+    
+    <article class="insight-card tone-gold">
+      <h3>手机 SoC</h3>
+      <p class="lead">展锐守住“量”，海思拿回“势”。</p>
+      <ul><li>展锐做中端 5G 成本性能比，海思做高端终端协同。</li><li>手机芯片判断重点是 ISP、基带、功耗和系统协同，不是只看 CPU/GPU。</li></ul>
+    </article>
+    </div>
+    </section>
+
+    <section class="section" id="market">
+      <div class="section-head">
+        <h2>市场格局</h2>
+        <p>这张图只回答一个问题：谁已经形成规模化商业化能力。结论很直观，华为断层领先，阿里第二，寒武纪和昆仑芯在第三极争位。</p>
+      </div>
+      <div class="split">
+        <div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 360" role="img" aria-label="2025年中国AI加速服务器本土出货对比">
+      <defs>
+        <linearGradient id="chartBg" x1="0" x2="1">
+          <stop offset="0%" stop-color="#f7f1e8"/>
+          <stop offset="100%" stop-color="#fffaf3"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="840" height="360" rx="28" fill="url(#chartBg)" stroke="#dccdbb"/>
+      <text x="42" y="42" fill="#6d5844" font-size="14" font-weight="700">2025 中国 AI 加速服务器本土出货</text>
+      <text x="42" y="320" fill="#8e7b69" font-size="12">口径：IDC 数据经公开报道转述；单位：万张。该图用于说明头部梯队差距，而非财务审计口径。</text>
+      
+            <text x="42" y="87" fill="#2b2b2b" font-size="15" font-weight="700">华为昇腾</text>
+            <rect x="180" y="70" width="580" height="22" rx="11" fill="#efe7dc"/>
+            <rect x="180" y="70" width="560.0" height="22" rx="11" fill="#b33a2f"/>
+            <text x="754.0" y="87" fill="#2b2b2b" font-size="14">81.2 万张</text>
+            
+            <text x="42" y="139" fill="#2b2b2b" font-size="15" font-weight="700">阿里 PPU</text>
+            <rect x="180" y="122" width="580" height="22" rx="11" fill="#efe7dc"/>
+            <rect x="180" y="122" width="182.8" height="22" rx="11" fill="#d96c42"/>
+            <text x="376.8" y="139" fill="#2b2b2b" font-size="14">26.5 万张</text>
+            
+            <text x="42" y="191" fill="#2b2b2b" font-size="15" font-weight="700">寒武纪</text>
+            <rect x="180" y="174" width="580" height="22" rx="11" fill="#efe7dc"/>
+            <rect x="180" y="174" width="80.0" height="22" rx="11" fill="#1d6663"/>
+            <text x="274.0" y="191" fill="#2b2b2b" font-size="14">11.6 万张</text>
+            
+            <text x="42" y="243" fill="#2b2b2b" font-size="15" font-weight="700">昆仑芯</text>
+            <rect x="180" y="226" width="580" height="22" rx="11" fill="#efe7dc"/>
+            <rect x="180" y="226" width="80.0" height="22" rx="11" fill="#4d8b84"/>
+            <text x="274.0" y="243" fill="#2b2b2b" font-size="14">11.6 万张</text>
+            
+            <text x="42" y="295" fill="#2b2b2b" font-size="15" font-weight="700">Others</text>
+            <rect x="180" y="278" width="580" height="22" rx="11" fill="#efe7dc"/>
+            <rect x="180" y="278" width="235.2" height="22" rx="11" fill="#c7b194"/>
+            <text x="429.2" y="295" fill="#2b2b2b" font-size="14">34.1 万张</text>
+            
+    </svg>
+    </div>
+        <div class="note-box">
+          <h3>怎么读这张图</h3>
+          <ul>
+            <li>华为不是单卡最强的简单概念，而是平台和交付最成熟。</li>
+            <li>阿里出货已明显拉开与第三梯队差距，说明云内生路线已经成型。</li>
+            <li>寒武纪和昆仑芯虽然出货量还没到第二梯队头部，但已经具备持续存在感。</li>
+            <li>Others 的机会主要在通用 GPU、细分行业和特定客户项目，不在正面硬拼平台规模。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="architecture">
+      <div class="section-head">
+        <h2>架构说明</h2>
+        <p>只保留真正影响判断的结构：软件栈、算力组织、带宽、互联，以及最终落地场景。</p>
+      </div>
+      <div class="arch-grid">
+        <article class="arch-card">
+          <h3>AI 加速器</h3>
+          <p>判断重点不是单卡参数，而是迁移成本、显存带宽和多卡平台能力。</p>
+          
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" role="img" aria-label="国产AI加速器架构说明">
+      <defs>
+        <linearGradient id="aiTopA" x1="0" x2="1">
+          <stop offset="0%" stop-color="#f6e4d1"/>
+          <stop offset="100%" stop-color="#fbf1e7"/>
+        </linearGradient>
+        <linearGradient id="aiTopB" x1="0" x2="1">
+          <stop offset="0%" stop-color="#e4efe7"/>
+          <stop offset="100%" stop-color="#f4faf7"/>
+        </linearGradient>
+        <linearGradient id="aiTopC" x1="0" x2="1">
+          <stop offset="0%" stop-color="#e3edf8"/>
+          <stop offset="100%" stop-color="#f4f8fd"/>
+        </linearGradient>
+        <marker id="aiArrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0L10 5L0 10Z" fill="#c6b6a3"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="920" height="620" rx="28" fill="#fffaf4" stroke="#d9ccba"/>
+
+      <text x="48" y="54" fill="#5f4b3a" font-size="16" font-weight="700">先看共性栈，再看产品级结构</text>
+
+      <g>
+        <rect x="48" y="82" width="244" height="92" rx="24" fill="url(#aiTopA)" stroke="#e1cfbc"/>
+        <text x="72" y="114" fill="#7d432b" font-size="18" font-weight="700">框架与模型</text>
+        <text x="72" y="138" fill="#5a524b" font-size="13">PyTorch / Paddle / vLLM / Qwen</text>
+        <text x="72" y="156" fill="#8a7764" font-size="12">先看模型、算子和训练脚本能不能迁。</text>
+      </g>
+
+      <g>
+        <rect x="338" y="82" width="244" height="92" rx="24" fill="url(#aiTopB)" stroke="#d1e0d6"/>
+        <text x="362" y="114" fill="#1f5f59" font-size="18" font-weight="700">SDK / 编译 / 运行时</text>
+        <text x="362" y="138" fill="#485550" font-size="13">CANN / PPU SDK / NeuWare / 昆仑芯 SDK</text>
+        <text x="362" y="156" fill="#6f7f79" font-size="12">软件栈决定迁移效率，也决定生态黏性。</text>
+      </g>
+
+      <g>
+        <rect x="628" y="82" width="244" height="92" rx="24" fill="url(#aiTopC)" stroke="#d3dff0"/>
+        <text x="652" y="114" fill="#305b8c" font-size="18" font-weight="700">芯片组织与扩展</text>
+        <text x="652" y="138" fill="#4d6177" font-size="13">NPU / PPU / MLU / XPU + HBM / GDDR / 互联</text>
+        <text x="652" y="156" fill="#73839a" font-size="12">显存、带宽和多卡互联决定上限。</text>
+      </g>
+
+      <line x1="292" y1="128" x2="338" y2="128" stroke="#c6b6a3" stroke-width="3" marker-end="url(#aiArrow)"/>
+      <line x1="582" y1="128" x2="628" y2="128" stroke="#c6b6a3" stroke-width="3" marker-end="url(#aiArrow)"/>
+
+      <text x="48" y="216" fill="#7b624a" font-size="14" font-weight="700">判断顺序</text>
+      <g>
+        <rect x="48" y="232" width="194" height="40" rx="20" fill="#f7ede1"/>
+        <text x="86" y="258" fill="#6d5844" font-size="14" font-weight="700">1. 迁移成本</text>
+        <rect x="254" y="232" width="194" height="40" rx="20" fill="#f7f0e6"/>
+        <text x="292" y="258" fill="#6d5844" font-size="14" font-weight="700">2. 显存 / 带宽</text>
+        <rect x="460" y="232" width="194" height="40" rx="20" fill="#f3efe8"/>
+        <text x="498" y="258" fill="#6d5844" font-size="14" font-weight="700">3. 多卡互联</text>
+        <rect x="666" y="232" width="206" height="40" rx="20" fill="#ece6dc"/>
+        <text x="710" y="258" fill="#6d5844" font-size="14" font-weight="700">4. 客户场景</text>
+      </g>
+
+      <text x="48" y="312" fill="#7b624a" font-size="14" font-weight="700">重点产品结构</text>
+
+      <g>
+        <rect x="48" y="328" width="392" height="124" rx="24" fill="#d96c42"/>
+        <text x="72" y="360" fill="#fff5ef" font-size="18" font-weight="700">真武 810E PPU</text>
+        <text x="72" y="381" fill="#ffe0d2" font-size="13">阿里云 / 平头哥</text>
+        <rect x="72" y="394" width="72" height="22" rx="11" fill="#f2b89e"/>
+        <text x="88" y="409" fill="#6b2d19" font-size="12" font-weight="700">算力组织</text>
+        <text x="156" y="409" fill="#fff5ef" font-size="12">PPU 阵列 + 96GB HBM2e + 700 GB/s ICN</text>
+        <rect x="72" y="422" width="72" height="22" rx="11" fill="#f2b89e"/>
+        <text x="94" y="437" fill="#6b2d19" font-size="12" font-weight="700">软件栈</text>
+        <text x="156" y="437" fill="#fff5ef" font-size="12">PPU SDK / CUDA 同名接口</text>
+      </g>
+
+      <g>
+        <rect x="480" y="328" width="392" height="124" rx="24" fill="#4d8b84"/>
+        <text x="504" y="360" fill="#f1fbfa" font-size="18" font-weight="700">R200 / R480-X8</text>
+        <text x="504" y="381" fill="#d6f0ec" font-size="13">百度昆仑芯</text>
+        <rect x="504" y="394" width="72" height="22" rx="11" fill="#a7d2cb"/>
+        <text x="520" y="409" fill="#1a5752" font-size="12" font-weight="700">算力组织</text>
+        <text x="588" y="409" fill="#f1fbfa" font-size="12">XPU-R + 16-32GB GDDR6</text>
+        <rect x="504" y="422" width="72" height="22" rx="11" fill="#a7d2cb"/>
+        <text x="520" y="437" fill="#1a5752" font-size="12" font-weight="700">多卡 / 生态</text>
+        <text x="588" y="437" fill="#f1fbfa" font-size="12">八卡组 + 200 GB/s + Paddle / 飞桨</text>
+      </g>
+
+      <g>
+        <rect x="48" y="472" width="392" height="100" rx="24" fill="#b33a2f"/>
+        <text x="72" y="504" fill="#fff4ee" font-size="18" font-weight="700">华为昇腾</text>
+        <text x="72" y="525" fill="#ffd7ca" font-size="13">华为</text>
+        <rect x="72" y="538" width="72" height="22" rx="11" fill="#ebaa98"/>
+        <text x="88" y="553" fill="#6e241c" font-size="12" font-weight="700">平台强项</text>
+        <text x="156" y="553" fill="#fff4ee" font-size="12">Ascend + Atlas + CANN，强在集群交付和政企生态</text>
+      </g>
+
+      <g>
+        <rect x="480" y="472" width="392" height="100" rx="24" fill="#1d6663"/>
+        <text x="504" y="504" fill="#eefaf9" font-size="18" font-weight="700">MLU370</text>
+        <text x="504" y="525" fill="#d2efeb" font-size="13">寒武纪</text>
+        <rect x="504" y="538" width="72" height="22" rx="11" fill="#9ccfc7"/>
+        <text x="520" y="553" fill="#194d4a" font-size="12" font-weight="700">路线强项</text>
+        <text x="588" y="553" fill="#eefaf9" font-size="12">MLUarch03 + NeuWare，专用 AI 芯片路线最清晰</text>
+      </g>
+    </svg>
+    
+        </article>
+
+        <article class="arch-card">
+          <h3>通用 CPU</h3>
+          <p>x86、Arm、LoongArch 各自卖点不同，核心是先定目标，再选路线。</p>
+          
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" role="img" aria-label="国产CPU三条路线架构说明">
+      <rect x="0" y="0" width="760" height="420" rx="28" fill="#fffaf4" stroke="#d9ccba"/>
+      <rect x="28" y="28" width="704" height="38" rx="19" fill="#f7f1e8" stroke="#e3d7c7"/>
+      <text x="54" y="53" fill="#6d5844" font-size="14" font-weight="700">判断顺序：先看兼容，再看平台能力，最后看自主 ISA 诉求</text>
+
+      <g>
+        <rect x="28" y="90" width="220" height="300" rx="24" fill="#f7ede3" stroke="#e0cdb8"/>
+        <rect x="48" y="110" width="78" height="24" rx="12" fill="#f1d8cc"/>
+        <text x="64" y="126" fill="#8a4333" font-size="12" font-weight="700">兼容路线</text>
+        <text x="48" y="156" fill="#7b4f2d" font-size="19" font-weight="700">x86-64</text>
+        <text x="48" y="177" fill="#8f7158" font-size="12">海光（海光信息）</text>
+        <rect x="48" y="194" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="62" y="219" fill="#48413c" font-size="12">16-32 核 / SMT / x86-64</text>
+        <rect x="48" y="244" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="62" y="269" fill="#48413c" font-size="12">8 通道内存 + 128 PCIe</text>
+        <rect x="48" y="294" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="62" y="319" fill="#48413c" font-size="12">海光 7000：数据库 / VM / ERP</text>
+        <text x="48" y="360" fill="#b33a2f" font-size="14" font-weight="700">关键词：兼容性红利</text>
+      </g>
+
+      <g>
+        <rect x="270" y="90" width="220" height="300" rx="24" fill="#e9f1f0" stroke="#cddfdc"/>
+        <rect x="290" y="110" width="78" height="24" rx="12" fill="#d6eae7"/>
+        <text x="306" y="126" fill="#235d5a" font-size="12" font-weight="700">平台路线</text>
+        <text x="290" y="156" fill="#235d5a" font-size="19" font-weight="700">Arm 服务器</text>
+        <text x="290" y="177" fill="#6b8480" font-size="12">华为鲲鹏（华为） / 飞腾（飞腾信息）</text>
+        <text x="290" y="193" fill="#6b8480" font-size="12">阿里倚天（阿里云）</text>
+        <rect x="290" y="210" width="180" height="40" rx="12" fill="#f7fbfb"/>
+        <text x="304" y="235" fill="#48413c" font-size="12">64-128 核 / 并发 + 能效</text>
+        <rect x="290" y="260" width="180" height="40" rx="12" fill="#f7fbfb"/>
+        <text x="304" y="285" fill="#48413c" font-size="12">鲲鹏 920 / 腾云 S5000C / 倚天 710</text>
+        <rect x="290" y="310" width="180" height="40" rx="12" fill="#f7fbfb"/>
+        <text x="304" y="335" fill="#48413c" font-size="12">云平台 / 行业整机 / 云内优化</text>
+        <text x="290" y="360" fill="#1d6663" font-size="14" font-weight="700">关键词：平台化与能效</text>
+      </g>
+
+      <g>
+        <rect x="512" y="90" width="220" height="300" rx="24" fill="#f2ece4" stroke="#dfd4c6"/>
+        <rect x="532" y="110" width="78" height="24" rx="12" fill="#e7dccb"/>
+        <text x="548" y="126" fill="#6b573d" font-size="12" font-weight="700">主权路线</text>
+        <text x="532" y="156" fill="#6b573d" font-size="19" font-weight="700">LoongArch</text>
+        <text x="532" y="177" fill="#8f7b61" font-size="12">龙芯（龙芯中科）</text>
+        <rect x="532" y="194" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="546" y="219" fill="#48413c" font-size="12">LA664 / 六发射 OoO / 向量扩展</text>
+        <rect x="532" y="244" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="546" y="269" fill="#48413c" font-size="12">LoongArch + LoongOS / Loongnix</text>
+        <rect x="532" y="294" width="180" height="40" rx="12" fill="#fffaf6"/>
+        <text x="546" y="319" fill="#48413c" font-size="12">政务 / 教育 / 工控 / 长期替代</text>
+        <text x="532" y="360" fill="#7a6433" font-size="14" font-weight="700">关键词：自主 ISA 主权</text>
+      </g>
+    </svg>
+    
+        </article>
+
+        <article class="arch-card">
+          <h3>手机 SoC</h3>
+          <p>真正拉开体验差距的是异构模块协同，不是单个 CPU 或 GPU 跑分。</p>
+          
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" role="img" aria-label="手机SoC异构集成架构说明">
+      <rect x="0" y="0" width="760" height="470" rx="28" fill="#fffaf4" stroke="#d9ccba"/>
+      <rect x="28" y="28" width="704" height="38" rx="19" fill="#f7f1e8" stroke="#e3d7c7"/>
+      <text x="54" y="53" fill="#6d5844" font-size="14" font-weight="700">体验不是单点跑分，而是 CPU、GPU、ISP、基带和系统链路协同</text>
+
+      <rect x="34" y="86" width="692" height="208" rx="24" fill="#fbf7ef" stroke="#e3d7c7"/>
+
+      <g stroke="#c8b9a8" stroke-width="2">
+        <line x1="145" y1="174" x2="330" y2="180"/>
+        <line x1="320" y1="174" x2="380" y2="180"/>
+        <line x1="495" y1="174" x2="430" y2="180"/>
+        <line x1="145" y1="238" x2="330" y2="234"/>
+        <line x1="320" y1="238" x2="380" y2="234"/>
+        <line x1="495" y1="238" x2="430" y2="234"/>
+      </g>
+
+      <rect x="72" y="118" width="146" height="56" rx="16" fill="#c95d39"/>
+      <text x="126" y="142" fill="#fff3eb" font-size="16" font-weight="700">CPU</text>
+      <text x="94" y="160" fill="#ffdccc" font-size="11">性能核 / 效率核</text>
+
+      <rect x="247" y="118" width="146" height="56" rx="16" fill="#1d6663"/>
+      <text x="300" y="142" fill="#eefaf9" font-size="16" font-weight="700">GPU</text>
+      <text x="279" y="160" fill="#d2efeb" font-size="11">图形 / 游戏 / UI</text>
+
+      <rect x="304" y="180" width="152" height="54" rx="16" fill="#2e3237"/>
+      <text x="353" y="203" fill="#faf4ed" font-size="15" font-weight="700">手机 SoC</text>
+      <text x="323" y="221" fill="#d8cfc4" font-size="11">异构调度 / 功耗 / 系统协同</text>
+
+      <rect x="422" y="118" width="146" height="56" rx="16" fill="#305b8c"/>
+      <text x="477" y="142" fill="#f1f7ff" font-size="16" font-weight="700">ISP</text>
+      <text x="452" y="160" fill="#d7e6f8" font-size="11">影像 / HDR / 夜景</text>
+
+      <rect x="72" y="238" width="146" height="56" rx="16" fill="#965246"/>
+      <text x="95" y="262" fill="#fff1ed" font-size="15" font-weight="700">5G Modem</text>
+      <text x="93" y="280" fill="#f4d7cf" font-size="11">蜂窝 / VoNR / 载波聚合</text>
+
+      <rect x="247" y="238" width="146" height="56" rx="16" fill="#8b6b30"/>
+      <text x="301" y="262" fill="#fff6e1" font-size="16" font-weight="700">NPU</text>
+      <text x="278" y="280" fill="#f3e3b0" font-size="11">端侧 AI / 感知</text>
+
+      <rect x="422" y="238" width="146" height="56" rx="16" fill="#4f7d75"/>
+      <text x="440" y="260" fill="#f0fbfa" font-size="13" font-weight="700">Memory / Display / TEE</text>
+      <text x="438" y="278" fill="#d7f1ed" font-size="11">LPDDR / UFS / 安全 / 高刷链路</text>
+
+      <text x="52" y="320" fill="#7b624a" font-size="13" font-weight="700">代表产品</text>
+
+      <g>
+        <rect x="34" y="336" width="332" height="100" rx="18" fill="#f7ede3" stroke="#e0cdb8"/>
+        <text x="56" y="365" fill="#7b4f2d" font-size="16" font-weight="700">紫光展锐 T8200</text>
+        <text x="56" y="386" fill="#8f7158" font-size="12">紫光展锐</text>
+        <text x="56" y="409" fill="#5f564e" font-size="12">Vivimagic 6.0 / 四核 ISP / 5G CA / VRR / TEE</text>
+        <text x="56" y="428" fill="#8a7764" font-size="11">更像：规模型中端 5G 平台，强调成本性能比</text>
+      </g>
+
+      <g>
+        <rect x="394" y="336" width="332" height="100" rx="18" fill="#e6edf7" stroke="#d4dfec"/>
+        <text x="416" y="365" fill="#2c4f77" font-size="16" font-weight="700">海思麒麟</text>
+        <text x="416" y="386" fill="#63778c" font-size="12">华为海思</text>
+        <text x="416" y="409" fill="#556b83" font-size="12">芯片 + HarmonyOS + 影像算法 + 通信调度</text>
+        <text x="416" y="428" fill="#7d8994" font-size="11">更像：高端体验与品牌势能平台，不只比裸参数</text>
+      </g>
+    </svg>
+    
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="vendors">
+      <div class="section-head">
+        <h2>厂商速览</h2>
+        <p>这里不展开写成长文，只回答四个问题：代表产品、最强项、关键技术、适合什么负载。</p>
+      </div>
+      <div class="vendors">
+    <article class="vendor-card tone-red">
+      <div class="vendor-top">
+        <span class="lane">AI 基础设施</span>
+        <h4>华为昇腾</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>Ascend / Atlas</dd></div>
+        <div><dt>最强项</dt><dd>平台和集群交付</dd></div>
+        <div><dt>关键技术</dt><dd>CANN + 行业模型适配</dd></div>
+        <div><dt>更适合</dt><dd>政企、运营商、智算中心</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-brick">
+      <div class="vendor-top">
+        <span class="lane">云内生 AI</span>
+        <h4>阿里平头哥 PPU</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>真武 810E</dd></div>
+        <div><dt>最强项</dt><dd>云到芯片闭环</dd></div>
+        <div><dt>关键技术</dt><dd>96GB HBM2e + ICN + PPU SDK</dd></div>
+        <div><dt>更适合</dt><dd>阿里云训练与推理</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-teal">
+      <div class="vendor-top">
+        <span class="lane">专用 AI 芯片</span>
+        <h4>寒武纪</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>MLU370</dd></div>
+        <div><dt>最强项</dt><dd>推训一体</dd></div>
+        <div><dt>关键技术</dt><dd>MLUarch03 + NeuWare</dd></div>
+        <div><dt>更适合</dt><dd>OCR、NLP、推荐、行业 AI</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-mint">
+      <div class="vendor-top">
+        <span class="lane">XPU 路线</span>
+        <h4>昆仑芯</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>R200 / R480-X8</dd></div>
+        <div><dt>最强项</dt><dd>运营商落地</dd></div>
+        <div><dt>关键技术</dt><dd>XPU-R + 八卡加速器组</dd></div>
+        <div><dt>更适合</dt><dd>智算中心、视觉、多模态</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-slate">
+      <div class="vendor-top">
+        <span class="lane">x86 + DCU</span>
+        <h4>海光</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>7000 系列 / DCU</dd></div>
+        <div><dt>最强项</dt><dd>存量软件兼容</dd></div>
+        <div><dt>关键技术</dt><dd>x86-64 + DTK</dd></div>
+        <div><dt>更适合</dt><dd>数据库、VM、通用政企</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-forest">
+      <div class="vendor-top">
+        <span class="lane">Arm 行业 CPU</span>
+        <h4>飞腾</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>腾云 S5000C</dd></div>
+        <div><dt>最强项</dt><dd>行业纵深</dd></div>
+        <div><dt>关键技术</dt><dd>双路 128 核级部署</dd></div>
+        <div><dt>更适合</dt><dd>金融、网安、专用服务器</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-sand">
+      <div class="vendor-top">
+        <span class="lane">自主 ISA</span>
+        <h4>龙芯</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>3A6000</dd></div>
+        <div><dt>最强项</dt><dd>自主可控上限</dd></div>
+        <div><dt>关键技术</dt><dd>LA664 + LoongArch + 向量扩展</dd></div>
+        <div><dt>更适合</dt><dd>教育、工控、政务、桌面</dd></div>
+      </dl>
+    </article>
+    
+    <article class="vendor-card tone-gold">
+      <div class="vendor-top">
+        <span class="lane">手机 SoC</span>
+        <h4>紫光展锐</h4>
+      </div>
+      <dl>
+        <div><dt>代表产品</dt><dd>T8200</dd></div>
+        <div><dt>最强项</dt><dd>中端 5G 规模化</dd></div>
+        <div><dt>关键技术</dt><dd>Vivimagic 6.0 + ISP + 5G CA</dd></div>
+        <div><dt>更适合</dt><dd>运营商机、入门到中端机型</dd></div>
+      </dl>
+    </article>
+    </div>
+    </section>
+
+    <section class="section" id="compare">
+      <div class="section-head">
+        <h2>Top3 vs Others</h2>
+        <p>按 2025 年中国 AI 加速服务器本土出货口径，前 3 更准确地说是“华为第一、阿里第二、寒武纪/昆仑芯第三极”，其余厂商仍在局部突破阶段。</p>
+      </div>
+      <div class="compare-grid">
+    <article class="compare-card tone-red">
+      <h4>华为昇腾</h4>
+      <ul><li>最强项：集群、生态、交付</li><li>短板：供应链和成本压力</li><li>适合：国产 AI 平台化建设</li></ul>
+    </article>
+    
+    <article class="compare-card tone-brick">
+      <h4>阿里 PPU</h4>
+      <ul><li>最强项：云闭环、迁移友好</li><li>短板：外部生态广度偏窄</li><li>适合：云内训练与推理</li></ul>
+    </article>
+    
+    <article class="compare-card tone-teal">
+      <h4>寒武纪 / 昆仑芯</h4>
+      <ul><li>最强项：产品定义清晰</li><li>短板：平台外延仍弱于华为</li><li>适合：行业专用 AI 与运营商项目</li></ul>
+    </article>
+    
+    <article class="compare-card tone-sand">
+      <h4>Others</h4>
+      <ul><li>最强项：GPGPU 通用性或细分行业突破</li><li>短板：规模、伙伴密度、心智不足</li><li>适合：差异化场景和技术储备</li></ul>
+    </article>
+    </div>
+    </section>
+
+    <section class="section" id="takeaways">
+      <div class="section-head">
+        <h2>结论</h2>
+        <p>如果这页是拿去做采购判断、投资讨论或老板汇报，真正值得记住的是这四条。</p>
+      </div>
+      <div class="takeaways">
+        <article class="takeaway"><b>AI 芯片竞争的主轴已经定了</b><span>未来两三年仍然是华为领跑、阿里做强云闭环、寒武纪/昆仑芯争第三极，Others 在细分路线里找突破口。</span></article>
+        <article class="takeaway"><b>服务器 CPU 不是单一路线对决</b><span>海光卖兼容，鲲鹏卖平台，飞腾卖行业深耕，龙芯卖自主主权。采购时必须先确定目标，再选路线。</span></article>
+        <article class="takeaway"><b>手机 SoC 的“量”和“势”已经分开</b><span>展锐守住规模市场，海思拿回高端整机势能，两者并不是简单替代关系。</span></article>
+        <article class="takeaway"><b>参数不再是最重要的结论</b><span>真正决定国产芯片成败的，是客户现场能否迁得动、跑得稳、交得出。</span></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>来源</h2>
+        <p>页面只展示关键来源。完整参考文献仍保留在详细版 Markdown 报告里。</p>
+      </div>
+      <details>
+        <summary>展开关键来源</summary>
+        <div class="sources">
+          <div>Huawei Atlas / Ascend 官方材料：<a href="https://www.huawei.com/en/news/2019/4/huawei-atlas-intelligent-computing-launch" target="_blank" rel="noopener noreferrer">Huawei Atlas launch</a></div>
+          <div>Reuters / IDC 中国 AI 加速服务器数据：<a href="https://www.investing.com/news/stock-market-news/chinese-chipmakers-claim-nearly-half-of-of-local-market-as-nvidias-lead-shrinks-idc-says-4592266" target="_blank" rel="noopener noreferrer">Reuters / Investing</a></div>
+          <div>阿里云真武 PPU 官方文档：<a href="https://help.aliyun.com/zh/document_detail/2864586.html" target="_blank" rel="noopener noreferrer">PPU 简介</a></div>
+          <div>昆仑芯 R200 官方产品页：<a href="https://www.kunlunxin.com/product/274.html" target="_blank" rel="noopener noreferrer">R200 系列</a></div>
+          <div>海光 2025 年报：<a href="https://static.cninfo.com.cn/finalpage/2026-04-08/1225083088.PDF" target="_blank" rel="noopener noreferrer">CNINFO PDF</a></div>
+          <div>龙芯 3A6000 官方产品页：<a href="https://www.loongson.cn/product/show?id=26" target="_blank" rel="noopener noreferrer">龙芯 3A6000</a></div>
+          <div>UNISOC T8200 官方产品页：<a href="https://www.unisoc.com/en/product/SmartPhone/T8200" target="_blank" rel="noopener noreferrer">UNISOC T8200</a></div>
+          <div>详细版文本报告：<a href="china_chip_vendors_report_2026-06-07.md">查看 Markdown</a></div>
+        </div>
+      </details>
+    </section>
+
+    <div class="footer">更新时间：2026-06-07。该页为汇报版，可配合详细版 Markdown 一起使用。</div>
+  </div>
+</body>
+</html>
