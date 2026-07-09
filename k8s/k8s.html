@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K8s生产化学习报告 · 以GLM 5.2部署为例</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F5F6F8;
+    --surface-2:#ECEEF2;
+    --border:#E3E6EB;
+    --ink:#1A1F29;
+    --ink-dim:#5B6472;
+    --ink-faint:#9AA3B2;
+    --blue:#2F6FE4;
+    --blue-dim:rgba(47,111,228,.08);
+    --teal:#0C9C93;
+    --teal-dim:rgba(12,156,147,.08);
+    --green:#1AA34A;
+    --green-dim:rgba(26,163,74,.08);
+    --amber:#C2740A;
+    --amber-dim:rgba(194,116,10,.10);
+    --gray:#6B7280;
+    --gray-dim:rgba(107,114,128,.08);
+
+    --rail-bg:#12161D;
+    --rail-surface2:#1B212B;
+    --rail-border:#2A3140;
+    --rail-ink:#E7EBF1;
+    --rail-ink-dim:#8B93A4;
+    --rail-ink-faint:#5B6272;
+    --bright-blue:#6FA8FF;
+    --bright-teal:#4FD6C4;
+    --bright-green:#6EE7A8;
+    --bright-amber:#F0B454;
+
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans); line-height:1.7; font-size:15px;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  .shell{display:grid; grid-template-columns:280px 1fr; min-height:100vh;}
+
+  /* ---------- Sidebar: kubectl-style nav (stays dark, terminal feel) ---------- */
+  .rail{
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    background:var(--rail-bg); border-right:1px solid var(--rail-border);
+    padding:24px 0 40px;
+  }
+  .rail-head{padding:0 20px 16px; border-bottom:1px solid var(--rail-border); margin-bottom:6px;}
+  .prompt{font-family:var(--mono); font-size:12px; color:var(--bright-teal); display:flex; gap:8px; align-items:center;}
+  .prompt .sym{color:var(--rail-ink-faint);}
+  .rail-cols{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--rail-ink-faint);
+    padding:14px 20px 8px; text-transform:uppercase;
+    display:grid; grid-template-columns:1fr 74px;
+  }
+  .rail-item{
+    display:grid; grid-template-columns:1fr 74px; align-items:center;
+    padding:9px 20px; text-decoration:none; cursor:pointer;
+    border-left:2px solid transparent;
+  }
+  .rail-item:hover{background:var(--rail-surface2);}
+  .rail-item.active{background:var(--rail-surface2); border-left-color:var(--bright-teal);}
+  .rail-name{font-family:var(--mono); font-size:12.5px; color:var(--rail-ink);}
+  .rail-focus{font-size:11px; color:var(--rail-ink-dim); display:block; margin-top:2px;}
+  .status{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10.5px;}
+  .status .dot{width:6px; height:6px; border-radius:50%; flex-shrink:0;}
+  .st-ready .dot{background:var(--bright-green); box-shadow:0 0 6px var(--bright-green);}
+  .st-ready{color:var(--bright-green);}
+  .st-plan .dot{background:var(--bright-amber);}
+  .st-plan{color:var(--bright-amber);}
+  .st-ref .dot{background:var(--rail-ink-faint);}
+  .st-ref{color:var(--rail-ink-faint);}
+  .rail-legend{padding:18px 20px 0; margin-top:8px; border-top:1px solid var(--rail-border);}
+  .rail-legend-title{font-family:var(--mono); font-size:10px; color:var(--rail-ink-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;}
+  .legend-row{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--rail-ink-dim); margin-bottom:7px;}
+  .legend-chip{width:10px; height:10px; border-radius:3px; flex-shrink:0;}
+
+  /* ---------- Main content ---------- */
+  .content{padding:64px 56px 120px; max-width:900px;}
+  .hero{margin-bottom:64px;}
+  .hero-eyebrow{font-family:var(--mono); font-size:12px; color:var(--teal); letter-spacing:.08em; text-transform:uppercase; margin-bottom:16px;}
+  .hero h1{font-family:var(--mono); font-size:38px; font-weight:700; line-height:1.25; margin:0 0 18px; letter-spacing:-.01em;}
+  .hero h1 span{color:var(--teal);}
+  .hero p.lead{font-size:16.5px; color:var(--ink-dim); max-width:640px; margin:0 0 28px;}
+  .hero-meta{display:flex; gap:28px; flex-wrap:wrap; font-family:var(--mono); font-size:12px; color:var(--ink-faint); border-top:1px solid var(--border); padding-top:20px;}
+  .hero-meta b{color:var(--ink-dim); font-weight:500;}
+
+  section.stage{margin-bottom:80px; scroll-margin-top:24px;}
+  .stage-eyebrow{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .stage-num{font-family:var(--mono); font-size:12px; color:var(--ink-faint); border:1px solid var(--border); border-radius:4px; padding:2px 8px;}
+  .stage-tag{font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; padding:2px 8px; border-radius:4px;}
+  .tag-ready{background:var(--green-dim); color:var(--green);}
+  .tag-plan{background:var(--amber-dim); color:var(--amber);}
+  h2.stage-title{font-family:var(--mono); font-size:25px; margin:0 0 10px; font-weight:600;}
+  .stage-desc{color:var(--ink-dim); font-size:14.5px; max-width:680px; margin:0 0 28px;}
+
+  h3.sub{font-size:16.5px; font-weight:700; margin:36px 0 12px; color:var(--ink); display:flex; align-items:center; gap:10px;}
+  h3.sub .bar{width:3px; height:16px; background:var(--teal); border-radius:2px; display:inline-block;}
+  p{margin:0 0 14px; color:var(--ink-dim);}
+  ul, ol{margin:0 0 16px; padding-left:20px; color:var(--ink-dim);}
+  li{margin-bottom:6px;}
+  code.inline{font-family:var(--mono); background:var(--surface-2); border:1px solid var(--border); padding:1px 6px; border-radius:4px; font-size:.9em; color:var(--teal);}
+  strong{color:var(--ink); font-weight:600;}
+
+  table{width:100%; border-collapse:collapse; margin:16px 0 24px; font-size:13.5px;}
+  th{font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-faint); text-align:left; padding:8px 14px; border-bottom:1px solid var(--border);}
+  td{padding:11px 14px; border-bottom:1px solid var(--border); color:var(--ink-dim); vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td:first-child, th:first-child{color:var(--ink); font-weight:500; white-space:nowrap;}
+  table.compact td, table.compact th{padding:8px 12px;}
+
+  .badge{display:inline-block; font-family:var(--mono); font-size:11px; padding:1px 7px; border-radius:4px;}
+  .b-blue{background:var(--blue-dim); color:var(--blue);}
+  .b-teal{background:var(--teal-dim); color:var(--teal);}
+  .b-green{background:var(--green-dim); color:var(--green);}
+  .b-amber{background:var(--amber-dim); color:var(--amber);}
+  .b-gray{background:var(--gray-dim); color:var(--gray);}
+
+  .callout{background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--amber); border-radius:6px; padding:16px 18px; margin:20px 0;}
+  .callout-title{font-family:var(--mono); font-size:11.5px; color:var(--amber); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;}
+  .callout p{margin:0; font-size:14px;}
+  .callout p + p{margin-top:8px;}
+
+  pre.code{
+    background:#10151C; border:1px solid var(--border); border-radius:8px;
+    padding:18px 20px; overflow-x:auto; font-family:var(--mono); font-size:12.5px;
+    line-height:1.65; margin:16px 0 24px; color:#D2D8E2;
+  }
+  pre.code .cm{color:var(--rail-ink-faint); font-style:italic;}
+  pre.code .kw{color:var(--bright-teal);}
+  pre.code .val{color:var(--bright-blue);}
+
+  /* SVG diagrams */
+  .diagram-wrap{
+    margin:24px 0 6px; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:22px 20px 16px;
+  }
+  .diagram-wrap svg{width:100%; height:auto; display:block; overflow:visible;}
+  .diagram-caption{text-align:center; font-size:12.5px; color:var(--ink-faint); margin:12px 0 28px;}
+
+  /* glossary */
+  .gcat{margin-bottom:8px; font-family:var(--mono); font-size:13px; color:var(--teal); text-transform:uppercase; letter-spacing:.05em; margin-top:36px;}
+
+  .footline{margin-top:100px; padding-top:24px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11.5px; color:var(--ink-faint); text-align:center;}
+
+  /* mobile */
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;}
+    .rail{position:relative; height:auto; top:0; border-right:none; border-bottom:1px solid var(--rail-border); padding:16px 0;}
+    .rail-cols{display:none;}
+    .rail-item{grid-template-columns:1fr auto;}
+    .content{padding:40px 22px 80px;}
+    .hero h1{font-size:28px;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <nav class="rail" id="rail">
+    <div class="rail-head">
+      <div class="prompt"><span class="sym">$</span> kubectl get stages -o wide</div>
+    </div>
+    <div class="rail-cols"><span>NAME</span><span>STATUS</span></div>
+
+    <a class="rail-item" data-target="hero" href="#hero">
+      <span><span class="rail-name">overview</span><span class="rail-focus">学习目标 · 案例定位</span></span>
+      <span class="status st-ref"><span class="dot"></span>--</span>
+    </a>
+    <a class="rail-item" data-target="stage-1" href="#stage-1">
+      <span><span class="rail-name">stage-1</span><span class="rail-focus">K8s基础设施层</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="stage-2" href="#stage-2">
+      <span><span class="rail-name">stage-2</span><span class="rail-focus">加速卡资源管理</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="stage-3" href="#stage-3">
+      <span><span class="rail-name">stage-3</span><span class="rail-focus">训练侧编排</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="stage-4" href="#stage-4">
+      <span><span class="rail-name">stage-4</span><span class="rail-focus">推理侧编排</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="stage-5" href="#stage-5">
+      <span><span class="rail-name">stage-5</span><span class="rail-focus">GLM 5.2实战</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="stage-6" href="#stage-6">
+      <span><span class="rail-name">stage-6</span><span class="rail-focus">生产化收尾</span></span>
+      <span class="status st-ready"><span class="dot"></span>Ready</span>
+    </a>
+    <a class="rail-item" data-target="timeline" href="#timeline">
+      <span><span class="rail-name">timeline</span><span class="rail-focus">学习节奏</span></span>
+      <span class="status st-ref"><span class="dot"></span>--</span>
+    </a>
+    <a class="rail-item" data-target="glossary" href="#glossary">
+      <span><span class="rail-name">glossary</span><span class="rail-focus">术语速查</span></span>
+      <span class="status st-ref"><span class="dot"></span>--</span>
+    </a>
+
+    <div class="rail-legend">
+      <div class="rail-legend-title">图例 · 颜色含义</div>
+      <div class="legend-row"><span class="legend-chip" style="background:var(--bright-blue)"></span>控制面 / 决策层</div>
+      <div class="legend-row"><span class="legend-chip" style="background:var(--bright-teal)"></span>插件 / 接口 / 扩展点</div>
+      <div class="legend-row"><span class="legend-chip" style="background:var(--bright-green)"></span>运行态 / 成功终态</div>
+      <div class="legend-row"><span class="legend-chip" style="background:var(--bright-amber)"></span>生产坑点 / 需要注意</div>
+    </div>
+  </nav>
+
+  <main class="content">
+
+    <section class="hero" id="hero">
+      <div class="hero-eyebrow">// Kubernetes for AI Training &amp; Inference</div>
+      <h1>K8s生产化学习报告<br>以 <span>GLM 5.2</span> 部署贯穿始终</h1>
+      <p class="lead">这份报告不是K8s入门教程，而是把"生产环境里怎么把训练/推理编排起来"这条主线上出现过的每一个组件、每一层原理都归位——从Pod声明到GPU/NPU绑定，从Gang Scheduling到多机PD分离，最后落到GLM 5.2这个753B MoE模型的真实部署决策上。</p>
+      <div class="hero-meta">
+        <span><b>案例锚点</b> GLM 5.2 · 753B MoE · 1M上下文</span>
+        <span><b>硬件覆盖</b> NVIDIA GPU + 华为昇腾NPU</span>
+        <span><b>建议周期</b> 6–8 周</span>
+      </div>
+    </section>
+
+    <!-- ============ STAGE 1 ============ -->
+    <section class="stage" id="stage-1">
+      <div class="stage-eyebrow"><span class="stage-num">01</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">生产级K8s基础设施层</h2>
+      <p class="stage-desc">跳过kubectl语法，聚焦"声明期望状态 → 调度决策 → 节点执行绑定"这条K8s最核心的调谐逻辑，以及围绕它的存储、网络、可观测性基建。</p>
+
+      <h3 class="sub"><span class="bar"></span>核心对象：地基层</h3>
+      <table>
+        <tr><th>对象</th><th>作用</th></tr>
+        <tr><td>Pod</td><td>最小调度单位，一个或多个共享网络/存储的容器</td></tr>
+        <tr><td>Deployment</td><td>管理一组无状态、互相等价的Pod副本，滚动升级、故障自愈；不保证Pod间启动顺序和身份一致性</td></tr>
+        <tr><td>StatefulSet</td><td>管理一组有稳定身份（固定序号、固定网络标识）的Pod，按顺序创建/销毁</td></tr>
+        <tr><td>Service</td><td>给一组Pod一个稳定的虚拟IP/域名，做四层负载均衡</td></tr>
+        <tr><td>Ingress</td><td>七层（HTTP/HTTPS）路由入口，按域名/路径转发流量</td></tr>
+        <tr><td>PV / PVC</td><td>PersistentVolume是实际存储资源，PersistentVolumeClaim是Pod对存储的申请声明，两者解耦</td></tr>
+        <tr><td>StorageClass</td><td>存储模板，定义PVC被创建时该怎么动态生成对应的PV</td></tr>
+      </table>
+
+      <h3 class="sub"><span class="bar"></span>调度与资源模型</h3>
+      <ul>
+        <li><strong>Scheduling Framework流水线</strong>：<code class="inline">QueueSort → PreFilter → Filter → PostFilter → PreScore → Score → Reserve → Permit → PreBind → Bind → PostBind</code>，Taint/Toleration、NodeAffinity在Filter阶段生效（淘汰候选节点），资源打分、拓扑打散在Score阶段生效（候选节点排序）</li>
+        <li><strong>Requests/Limits 落地到cgroups</strong>：CPU Requests → <code class="inline">cpu.shares</code>（相对权重）；CPU Limits → <code class="inline">cfs_quota_us/cfs_period_us</code>（硬性限流）；Memory Limits → cgroup硬上限，超出直接OOMKilled</li>
+        <li><strong>QoS三档</strong>（由Requests/Limits关系自动决定）：<span class="badge b-green">Guaranteed</span>（两者相等）、<span class="badge b-amber">Burstable</span>（Requests&lt;Limits）、<span class="badge b-gray">BestEffort</span>（都不设置），决定节点资源紧张时先驱逐谁</li>
+        <li><strong>Taint三种effect</strong>：<code class="inline">NoSchedule</code> / <code class="inline">PreferNoSchedule</code> / <code class="inline">NoExecute</code>（连正在跑的Pod也会被驱逐，可配合<code class="inline">tolerationSeconds</code>设置容忍时长）</li>
+        <li><strong>schedulerName</strong>：每个Pod可指定由谁调度，默认kube-scheduler，可指向Volcano、KAI Scheduler等——这是整个AI调度生态能够存在的入口开关，多个调度器通过Leader Election各自保证高可用，互不干扰</li>
+      </ul>
+
+      <h3 class="sub"><span class="bar"></span>存储：CSI / PV / PVC</h3>
+      <ul>
+        <li>CSI是一套gRPC接口规范，分三个服务：<strong>Identity</strong>（自报身份能力）、<strong>Controller</strong>（卷创建/删除/扩容，通常以Deployment跑在管理面）、<strong>Node</strong>（实际挂载到节点，必须以DaemonSet跑）</li>
+        <li>Controller前面挂了一串社区通用sidecar：<code class="inline">external-provisioner</code> / <code class="inline">external-attacher</code> / <code class="inline">external-resizer</code> / <code class="inline">external-snapshotter</code> / <code class="inline">node-driver-registrar</code></li>
+        <li><strong>VolumeBindingMode</strong>：<code class="inline">Immediate</code>（PVC创建立刻绑定）vs <code class="inline">WaitForFirstConsumer</code>（等Pod调度到节点后才绑定）——大规模训练集群必须用后者，否则PV和Pod可能落在不同可用区导致死锁</li>
+        <li><strong>AccessModes</strong>：<code class="inline">ReadWriteOnce</code> vs <code class="inline">ReadWriteMany</code>——多机共享的权重/数据集目录必须是RWX，对应并行文件系统（Lustre、CPFS、NFS），本地SSD做不到</li>
+      </ul>
+
+      <h3 class="sub"><span class="bar"></span>网络：CNI / Service / Ingress / Gateway API</h3>
+      <ul>
+        <li>CNI两大流派：<strong>Overlay</strong>（VXLAN封装，如Flannel，有封装解封装开销）vs <strong>BGP路由/云厂商原生ENI</strong>（Calico BGP模式、VPC-CNI，Pod IP直接VPC可达，无封装开销）——AI训练场景优先选后者，避免拖慢跨节点AllReduce/HCCL通信</li>
+        <li><strong>kube-proxy</strong>三种模式：<code class="inline">iptables</code>（链式遍历，O(n)）、<code class="inline">ipvs</code>（哈希查找，O(1)，大规模集群首选）、新版<code class="inline">nftables</code></li>
+        <li><strong>CoreDNS</strong>：集群内服务发现核心，Service名解析成ClusterIP靠它</li>
+        <li><strong>Gateway API</strong>：Ingress的下一代替代，用<code class="inline">GatewayClass/Gateway/HTTPRoute</code>拆分基础设施团队和应用团队的职责边界，扩展点更细粒度</li>
+        <li><strong>Multus CNI</strong>：meta-plugin，允许一个Pod挂多张网卡——管理流量走默认CNI，RDMA高速通信走第二张网卡直通SR-IOV/RoCE硬件</li>
+      </ul>
+
+      <h3 class="sub"><span class="bar"></span>可观测性</h3>
+      <ul>
+        <li><strong>Prometheus Operator</strong>引入的CRD：<code class="inline">ServiceMonitor</code> / <code class="inline">PodMonitor</code>（声明抓取目标）、<code class="inline">PrometheusRule</code>（告警规则）、Alertmanager CRD（告警路由）</li>
+        <li><strong>指标来源三层</strong>：<code class="inline">cAdvisor</code>（内嵌kubelet，容器级资源）、<code class="inline">node-exporter</code>（DaemonSet，宿主机级）、<code class="inline">kube-state-metrics</code>（K8s对象状态，与资源使用无关）</li>
+        <li><strong>GPU/NPU指标不在上述任何一层</strong>，需额外部署 <code class="inline">DCGM Exporter</code>（NVIDIA）或 <code class="inline">npu-exporter</code>（昇腾）</li>
+        <li>日志采集：Fluent Bit/Filebeat以DaemonSet逐节点tail <code class="inline">/var/log/containers/</code> 再转发到Loki/ES</li>
+      </ul>
+
+      <h3 class="sub"><span class="bar"></span>Pod调度与资源绑定全流程</h3>
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 700" role="img">
+        <title>Kubernetes Pod调度与资源绑定流程图</title>
+        <defs>
+          <marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <line x1="340" y1="84" x2="340" y2="140" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr1)"/>
+        <line x1="340" y1="200" x2="340" y2="256" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr1)"/>
+        <line x1="340" y1="316" x2="340" y2="372" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr1)"/>
+        <text x="352" y="349" font-family="var(--mono)" font-size="11" fill="var(--amber)">Bind：写入nodeName</text>
+
+        <line x1="300" y1="432" x2="107" y2="488" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="325" y1="432" x2="262" y2="488" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="355" y1="432" x2="418" y2="488" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="380" y1="432" x2="573" y2="488" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+
+        <line x1="107" y1="548" x2="300" y2="604" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="262" y1="548" x2="325" y2="604" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="418" y1="548" x2="355" y2="604" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+        <line x1="573" y1="548" x2="380" y2="604" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr1)"/>
+
+        <g>
+          <rect x="220" y="40" width="240" height="44" rx="9" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.2"/>
+          <text x="340" y="66" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="600" fill="var(--ink)">提交Pod声明</text>
+        </g>
+
+        <g>
+          <rect x="220" y="144" width="240" height="56" rx="9" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <text x="340" y="167" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="600" fill="var(--ink)">API Server</text>
+          <text x="340" y="185" text-anchor="middle" font-size="11" fill="var(--ink-dim)">写入etcd，成为期望状态</text>
+        </g>
+
+        <g>
+          <rect x="220" y="260" width="240" height="56" rx="9" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <text x="340" y="283" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="600" fill="var(--ink)">Scheduler</text>
+          <text x="340" y="301" text-anchor="middle" font-size="11" fill="var(--ink-dim)">Filter → Score → Bind</text>
+        </g>
+
+        <g>
+          <rect x="220" y="376" width="240" height="56" rx="9" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <text x="340" y="399" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="600" fill="var(--ink)">kubelet</text>
+          <text x="340" y="417" text-anchor="middle" font-size="11" fill="var(--ink-dim)">节点代理，接管本机Pod</text>
+        </g>
+
+        <g>
+          <rect x="40" y="492" width="135" height="56" rx="9" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+          <text x="107" y="515" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="600" fill="var(--ink)">CRI</text>
+          <text x="107" y="533" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">创建容器+cgroups</text>
+        </g>
+        <g>
+          <rect x="195" y="492" width="135" height="56" rx="9" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+          <text x="262" y="515" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="600" fill="var(--ink)">CNI</text>
+          <text x="262" y="533" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">分配IP，接入网络</text>
+        </g>
+        <g>
+          <rect x="350" y="492" width="135" height="56" rx="9" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+          <text x="417" y="515" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="600" fill="var(--ink)">CSI</text>
+          <text x="417" y="533" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">挂载存储卷</text>
+        </g>
+        <g>
+          <rect x="505" y="492" width="135" height="56" rx="9" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+          <text x="572" y="515" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="600" fill="var(--ink)">设备插件</text>
+          <text x="572" y="533" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">绑定GPU/NPU</text>
+        </g>
+
+        <g>
+          <rect x="220" y="608" width="240" height="44" rx="9" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.2"/>
+          <text x="340" y="634" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="600" fill="var(--ink)">Pod 运行中</text>
+        </g>
+      </svg>
+      </div>
+      <p class="diagram-caption">决策（Scheduler）和执行（kubelet）分离；执行层四个接口都是可插拔标准，具体实现可按需替换。</p>
+
+      <h3 class="sub"><span class="bar"></span>易被忽略但重要的补充点</h3>
+      <table class="compact">
+        <tr><td>etcd</td><td>K8s所有对象状态的唯一数据源，一致性键值存储；备份恢复策略和大规模集群下的写入延迟调优是生产最容易忽略但最致命的一环</td></tr>
+        <tr><td>Admission Webhook</td><td>ValidatingWebhook（校验）+ MutatingWebhook（改写，如自动给训练Pod注入RDMA设备声明）；平台自动化注入逻辑基本都靠这个实现</td></tr>
+        <tr><td>Reconcile Loop</td><td>所有Operator共享的通用设计模式：持续对比期望状态与实际状态，有差异就调用原生API缩小差距，失败就重试</td></tr>
+        <tr><td>Topology Manager</td><td>kubelet特性，协调CPU/Device/Memory Manager的分配决策落在同一NUMA节点，避免跨NUMA访问的延迟惩罚</td></tr>
+        <tr><td>Pod Disruption Budget</td><td>声明一组Pod同时被主动中断的数量上限；没有PDB时集群升级可能同时重启训练组用到的多台节点，因Gang Scheduling强绑定直接团灭</td></tr>
+        <tr><td>Node Problem Detector</td><td>检测节点硬件异常（GPU Xid错误等），发现后自动打Taint隔离故障节点，是故障自愈闭环里"发现问题"的一环</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ STAGE 2 ============ -->
+    <section class="stage" id="stage-2">
+      <div class="stage-eyebrow"><span class="stage-num">02</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">加速卡资源管理层</h2>
+      <p class="stage-desc">从Pod声明里的一个resources.limits字段，到真正绑定到一张物理GPU/NPU卡，中间的接口标准、组件生态与虚拟化机制。</p>
+
+      <h3 class="sub"><span class="bar"></span>Device Plugin：三段式gRPC交互</h3>
+      <p>Device Plugin是跑在每节点的gRPC server，通过<code class="inline">/var/lib/kubelet/device-plugins/</code>下的Unix socket向kubelet注册：</p>
+      <ol>
+        <li><strong>Registration</strong>：插件启动时向kubelet注册自己的资源名（如<code class="inline">nvidia.com/gpu</code>、<code class="inline">huawei.com/Ascend910</code>）</li>
+        <li><strong>ListAndWatch</strong>：长连接流式RPC，持续把本机可用设备列表推送给kubelet，更新节点的Capacity/Allocatable</li>
+        <li><strong>Allocate</strong>：Pod被调度到本节点且申请该资源时，kubelet调用它，插件返回该挂载哪些设备文件/环境变量</li>
+      </ol>
+      <div class="callout">
+        <div class="callout-title">关键认知</div>
+        <p>Device Plugin本身<strong>不参与调度决策</strong>，只负责上报和挂载；具体怎么分配（比如优先分配拓扑相邻的卡）它管不了——这正是需要接入Volcano等次级调度器的原因。</p>
+      </div>
+
+      <h3 class="sub"><span class="bar"></span>GPU侧 vs NPU侧：组件对照</h3>
+      <table>
+        <tr><th>GPU侧（NVIDIA GPU Operator）</th><th>NPU侧（华为 MindCluster / MindX DL）</th><th>作用</th></tr>
+        <tr><td>NVIDIA Driver</td><td>昇腾NPU驱动+固件</td><td>硬件底层驱动</td></tr>
+        <tr><td>NVIDIA Container Toolkit</td><td>Ascend Docker Runtime</td><td>本质是runC插件，让容器运行时能访问加速卡</td></tr>
+        <tr><td>Device Plugin</td><td>Ascend Device Plugin</td><td>把加速卡注册成K8s可调度资源</td></tr>
+        <tr><td>GPU Feature Discovery</td><td>（节点标签检测）</td><td>检测型号/特性，自动打节点标签</td></tr>
+        <tr><td>DCGM Exporter</td><td>NPU-Exporter</td><td>基于Prometheus/Telegraf暴露利用率、显存、温度等指标</td></tr>
+        <tr><td>MIG Manager</td><td>vNPU虚拟化（静态/动态）</td><td>卡内切分成多个虚拟实例</td></tr>
+        <tr><td>（原生无对应）</td><td>Volcano NPU亲和性调度插件</td><td>昇腾NPU存在卡间亲和性，需感知拓扑做高效调度分配</td></tr>
+      </table>
+      <p>整套Operator走的是CRD+Operator模式：NVIDIA侧核心CRD是<code class="inline">ClusterPolicy</code>，声明要启用哪些能力，Operator据此在每个GPU节点拉起对应DaemonSet组件。</p>
+
+      <h3 class="sub"><span class="bar"></span>MIG / vNPU / Time-Slicing：切分≠切分</h3>
+      <table>
+        <tr><th>方案</th><th>隔离级别</th><th>说明</th></tr>
+        <tr><td>MIG</td><td><span class="badge b-green">硬件物理隔离</span></td><td>切成最多7个独立实例，各自专属显存/计算核心/缓存；仅Ampere、Hopper等少数GPU支持</td></tr>
+        <tr><td>vNPU静态切分</td><td><span class="badge b-green">硬件物理隔离</span></td><td>npu-smi命令直接创建/销毁，芯片层面硬切分</td></tr>
+        <tr><td>vNPU动态切分</td><td><span class="badge b-green">硬件物理隔离</span></td><td>MindX DL自动创建，但每个Pod只能使用一张vNPU卡——与TP&gt;1的大模型部署冲突</td></tr>
+        <tr><td>Time-Slicing / 软切分</td><td><span class="badge b-amber">仅分时复用，无真隔离</span></td><td>驱动层快速切换上下文，显存/算力没有硬隔离，一个容器打爆显存会影响同卡其他容器</td></tr>
+      </table>
+
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 235" role="img">
+        <title>三种加速卡切分方式的隔离级别对比</title>
+        <text x="120" y="22" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--ink)">MIG / vNPU静态切分</text>
+        <rect x="25" y="36" width="190" height="120" rx="10" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="39" y="50" width="77" height="42" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="124" y="50" width="77" height="42" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="39" y="100" width="77" height="42" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="124" y="100" width="77" height="42" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="120" y="176" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">物理隔离 · 独立显存/算力</text>
+
+        <text x="340" y="22" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--ink)">vNPU动态切分</text>
+        <rect x="245" y="36" width="190" height="120" rx="10" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="259" y="50" width="77" height="92" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <rect x="344" y="50" width="77" height="92" rx="6" fill="none" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="297" y="99" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Pod A</text>
+        <text x="382" y="99" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Pod B</text>
+        <text x="340" y="176" text-anchor="middle" font-size="10.5" fill="var(--amber)">物理隔离 · 每Pod限1张</text>
+
+        <text x="560" y="22" text-anchor="middle" font-family="var(--mono)" font-size="13" font-weight="700" fill="var(--ink)">Time-Slicing 软切分</text>
+        <rect x="465" y="36" width="190" height="120" rx="10" fill="var(--amber-dim)" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <rect x="489" y="52" width="110" height="66" rx="8" fill="rgba(194,116,10,.12)" stroke="var(--amber)" stroke-width="1.1" stroke-dasharray="4 3"/>
+        <rect x="503" y="64" width="110" height="66" rx="8" fill="rgba(194,116,10,.16)" stroke="var(--amber)" stroke-width="1.1" stroke-dasharray="4 3"/>
+        <rect x="517" y="76" width="110" height="66" rx="8" fill="rgba(194,116,10,.20)" stroke="var(--amber)" stroke-width="1.1" stroke-dasharray="4 3"/>
+        <text x="560" y="176" text-anchor="middle" font-size="10.5" fill="var(--amber)">分时复用 · 无真实隔离</text>
+      </svg>
+      </div>
+      <p class="diagram-caption">左、中两种是芯片层面的物理切分，互不干扰；右侧Time-Slicing只是让多个容器"轮流用卡"，显存互相看得见、也互相打得爆。</p>
+
+      <p><strong>Project-HAMi</strong>是跨厂商的开源方案，在原生Device Plugin基础上补上更细粒度的显存/算力配额能力，适合多租户细粒度算力售卖场景。</p>
+
+      <h3 class="sub"><span class="bar"></span>Topology Manager：NUMA对齐策略</h3>
+      <table class="compact">
+        <tr><td><code class="inline">none</code></td><td>不对齐（默认，兼容性最好，性能最差）</td></tr>
+        <tr><td><code class="inline">best-effort</code></td><td>尽量对齐，对不齐也放行</td></tr>
+        <tr><td><code class="inline">restricted</code></td><td>必须对齐，对不齐拒绝调度——大规模训练建议至少用这个</td></tr>
+        <tr><td><code class="inline">single-numa-node</code></td><td>最严格，所有资源须落在同一NUMA节点</td></tr>
+      </table>
+
+      <div class="callout">
+        <div class="callout-title">生产坑点</div>
+        <p>MIG geometry变更是<strong>破坏性操作</strong>：变更期间device-plugin、gpu-feature-discovery、dcgm-exporter会被打上"paused-for-mig-change"暂停调度，须在低峰期操作。</p>
+        <p>vNPU"每Pod限一张卡"与TP&gt;1冲突，所以GLM 5.2这类需要TP=8/16的大模型部署通常直接走<strong>整卡调度</strong>，不用vNPU。</p>
+        <p>昇腾NPU亲和性未配置好会拖慢多机训练，务必确认Volcano的NPU拓扑感知调度插件已启用。</p>
+      </div>
+    </section>
+
+    <!-- ============ STAGE 3 ============ -->
+    <section class="stage" id="stage-3">
+      <div class="stage-eyebrow"><span class="stage-num">03</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">训练侧编排</h2>
+      <p class="stage-desc">把超大MoE模型的分布式训练，从一堆手写脚本，变成K8s上声明式管理、能扛住节点故障的Job。</p>
+
+      <h3 class="sub"><span class="bar"></span>Kubeflow Trainer v2：三层职责分离</h3>
+      <p>v1时代每种框架一个CRD（<code class="inline">PyTorchJob</code>、<code class="inline">TFJob</code>、<code class="inline">MPIJob</code>），v2统一成单一的<code class="inline">TrainJob</code> API，并把职责拆成三层：</p>
+      <table>
+        <tr><th>角色</th><th>使用的资源</th><th>关心什么</th></tr>
+        <tr><td>平台管理员</td><td><code class="inline">ClusterTrainingRuntime</code> / <code class="inline">TrainingRuntime</code></td><td>预置基础设施模板：镜像、资源规格、分布式配置、调度策略</td></tr>
+        <tr><td>AI工程师</td><td><code class="inline">TrainJob</code></td><td>只填训练代码、节点数、资源量，引用一个现成的Runtime</td></tr>
+        <tr><td>K8s生态</td><td>JobSet / Kueue / LWS</td><td>在底层真正把Pod创建、torchrun启动、rendezvous配置这些"体力活"做掉</td></tr>
+      </table>
+      <p>关键认知：<strong>TrainJob本身不直接管理Pod</strong>，它引用的Runtime底层封装的是<code class="inline">JobSet</code>（K8s原生的批量Job编排API）——这与Stage 4会讲到的LWS是同一批"Batch Working Group"孵化出来的姊妹API，一个面向训练的多Job编排，一个面向推理的多机部署。</p>
+      <pre class="code"><span class="cm"># AI工程师只写这些，torchrun怎么启动、rendezvous怎么配，全部封装在Runtime里</span>
+apiVersion: trainer.kubeflow.org/v1alpha1
+kind: TrainJob
+metadata:
+  name: glm52-finetune
+spec:
+  runtimeRef:
+    kind: ClusterTrainingRuntime
+    name: torch-distributed
+  trainer:
+    numNodes: 8
+    resourcesPerNode:
+      limits:
+        huawei.com/ascend-910: 8</pre>
+
+      <h3 class="sub"><span class="bar"></span>Gang Scheduling：三条技术路线怎么选</h3>
+      <p>当资源不足以调度任务所需的全部Pod时，默认调度器会让所有Pod停在Pending状态互相等待——MoE大模型训练最容易踩这个坑：几十个Pod里卡住两三个，整个任务假死。三条主流路线原理并不相同：</p>
+      <table>
+        <tr><th>方案</th><th>核心对象</th><th>"All-or-Nothing"怎么实现</th></tr>
+        <tr><td>Volcano</td><td><code class="inline">PodGroup</code></td><td>Pod携带PodGroup引用，调度器只有在能凑齐<code class="inline">minMember</code>个Pod的资源时才批量放行，凑不齐全部退回队列</td></tr>
+        <tr><td>Kueue</td><td><code class="inline">Workload</code></td><td>把一个Job的所有Pod包成一个Workload对象，在Pod真正被创建前先在准入层排队，直到<strong>ClusterQueue</strong>能保证全部资源到位才放行——从源头上不给partial scheduling机会</td></tr>
+        <tr><td>KAI Scheduler</td><td>PodGroup（NVIDIA实现）</td><td>思路与Volcano类似，专为GPU场景做了拓扑感知与Pod重调度优化</td></tr>
+        <tr><td>Coscheduling</td><td>Scheduler Plugins的PodGroup</td><td>作为kube-scheduler的插件运行，轻量，不需要单独部署一套调度器</td></tr>
+      </table>
+      <p>Kueue的资源管理模型值得单独记一下，因为它同时解决了gang scheduling和多租户配额两个问题：</p>
+      <ul>
+        <li><strong>ResourceFlavor</strong>：定义集群里有哪些"资源口味"（比如带InfiniBand的GPU节点 vs 普通节点）</li>
+        <li><strong>ClusterQueue</strong>：定义配额和公平共享规则，支持配额借用——团队A闲时，团队B可以临时借用A的额度，资源紧张时自动收回</li>
+        <li><strong>LocalQueue</strong>：命名空间级的用户入口，指向某个ClusterQueue</li>
+        <li><strong>Workload</strong>：Kueue对"一个Job的Pod组"的抽象，只有当ClusterQueue能同时满足这个Workload全部资源需求时才会被准入（<code class="inline">QuotaReserved</code>状态）</li>
+      </ul>
+      <div class="callout">
+        <div class="callout-title">选型建议</div>
+        <p>昇腾生态优先Volcano（官方MindCluster生态深度集成，NPU亲和性调度也靠它）；GPU多租户配额+跨集群调度优先Kueue；只是想给已有kube-scheduler加一个轻量gang scheduling能力、不想引入独立调度器，选Coscheduling。</p>
+      </div>
+
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 300" role="img">
+        <title>有无Gang Scheduling的调度结果对比</title>
+        <text x="340" y="22" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="700" fill="var(--amber)">没有 Gang Scheduling</text>
+        <g>
+          <rect x="89" y="38" width="54" height="54" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <rect x="153" y="38" width="54" height="54" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <rect x="217" y="38" width="54" height="54" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <rect x="281" y="38" width="54" height="54" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <rect x="345" y="38" width="54" height="54" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+          <rect x="409" y="38" width="54" height="54" rx="8" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <rect x="473" y="38" width="54" height="54" rx="8" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.2" stroke-dasharray="5 4"/>
+          <rect x="537" y="38" width="54" height="54" rx="8" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.2" stroke-dasharray="5 4"/>
+        </g>
+        <text x="242" y="110" text-anchor="middle" font-size="11" fill="var(--blue)">已调度，但等不到全部同伴</text>
+        <text x="533" y="110" text-anchor="middle" font-size="11" fill="var(--gray)">资源不足，Pending</text>
+        <text x="340" y="134" text-anchor="middle" font-family="var(--mono)" font-size="12.5" font-weight="700" fill="var(--amber)">→ 任务假死：谁都无法真正开始训练</text>
+
+        <line x1="20" y1="156" x2="660" y2="156" stroke="var(--border)" stroke-width="1"/>
+
+        <text x="340" y="180" text-anchor="middle" font-family="var(--mono)" font-size="13.5" font-weight="700" fill="var(--green)">Gang Scheduling（PodGroup / Workload）</text>
+
+        <text x="170" y="200" text-anchor="middle" font-size="11" fill="var(--ink-dim)">资源不足 → 全部排队等待</text>
+        <g>
+          <rect x="25" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="59" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="93" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="127" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="161" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="195" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="229" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+          <rect x="263" y="210" width="26" height="26" rx="5" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.1" stroke-dasharray="4 3"/>
+        </g>
+
+        <defs>
+          <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <line x1="300" y1="223" x2="356" y2="223" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr3)"/>
+        <text x="328" y="212" text-anchor="middle" font-size="9.5" fill="var(--ink-faint)">凑齐</text>
+
+        <text x="510" y="200" text-anchor="middle" font-size="11" fill="var(--green)">资源就绪 → 整批同时启动</text>
+        <g>
+          <rect x="360" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="394" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="428" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="462" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="496" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="530" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="564" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+          <rect x="598" y="210" width="26" height="26" rx="5" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+        </g>
+
+        <text x="340" y="272" text-anchor="middle" font-size="12" fill="var(--ink-dim)">All-or-Nothing：要么全部调度成功同时启动，要么全部保持Pending</text>
+      </svg>
+      </div>
+      <p class="diagram-caption">同样8个Pod，无gang scheduling时"抢到资源的先跑"，有gang scheduling时要么全员就绪、要么全员等待。</p>
+
+      <h3 class="sub"><span class="bar"></span>弹性容错：TorchElastic怎么做到"挂一个节点不死全部"</h3>
+      <p>PyTorch弹性训练（TorchElastic / PET）的核心是给每个节点配一个<strong>elastic-agent</strong>常驻进程，它不直接跑训练代码，而是管理本节点上的worker进程并和其他节点的agent做成员协商：</p>
+      <ol>
+        <li>某个worker进程失败时，本节点的elastic-agent会<strong>杀掉本节点上全部worker</strong>（不只是失败的那个）</li>
+        <li>存活的agent之间重新做一次<strong>rendezvous</strong>（基于etcd的集合点，协商新的participant列表、RANK、WORLD_SIZE）</li>
+        <li>用新的成员信息重启worker，训练从上一个已知良好状态恢复</li>
+      </ol>
+      <div class="callout">
+        <div class="callout-title">容易理解错的一点</div>
+        <p>TorchElastic<strong>不负责checkpoint的保存与加载</strong>——这部分被有意设计成"bare-bones"，必须由训练脚本自己实现<code class="inline">torch.save</code> / <code class="inline">torch.load</code>并写到RWX共享存储（对应Stage 1讲的CSI持久卷）。elastic-agent只负责进程编排和rendezvous，真正的状态恢复逻辑是用户代码的责任。</p>
+      </div>
+      <p>K8s上对应的是<code class="inline">ElasticJob</code> CRD（<code class="inline">elastic.pytorch.org/v1alpha1</code>），声明<code class="inline">minReplicas</code>/<code class="inline">maxReplicas</code>区间而非固定副本数，配合Spot/竞价实例可以做到"资源紧张时缩容、资源充裕时扩容"而不用重启整个训练任务。这与Kubeflow Trainer v2里的<code class="inline">PodFailurePolicy</code>是互补关系：后者决定Pod失败后K8s层面要不要重建/算不算Job失败，前者决定训练进程层面怎么重新组织幸存的worker。</p>
+    </section>
+
+    <!-- ============ STAGE 4 ============ -->
+    <section class="stage" id="stage-4">
+      <div class="stage-eyebrow"><span class="stage-num">04</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">推理侧编排</h2>
+      <p class="stage-desc">多机PD分离的推理服务，传统Deployment/StatefulSet已经不够用，这是这两年变化最快的一层。</p>
+
+      <h3 class="sub"><span class="bar"></span>为什么Deployment/StatefulSet都不够用</h3>
+      <p>Deployment的Pod彼此等价、互不感知身份，无法表达"这几个Pod共同组成一个推理实例"这种关系；StatefulSet虽然有身份和顺序，但它管理的是<strong>一组同构的独立个体</strong>，而多机推理需要的是"1个Leader（负责调度请求、聚合输出）+ N个Worker（分摊TP/PP权重）"这种<strong>异构但绑定为一个整体</strong>的拓扑——这正是LWS要解决的问题。</p>
+
+      <h3 class="sub"><span class="bar"></span>LeaderWorkerSet：控制器怎么把"组"翻译成K8s原生对象</h3>
+      <p>LWS本身是CRD+Operator，底层仍然落地为StatefulSet——可以理解成在StatefulSet之上包了一层"组管理"：一个LWS副本 = 1个Leader StatefulSet（size=1）+ 1个Worker StatefulSet（size=N-1），LWS控制器负责让这两者的生命周期保持同步。两个关键配置：</p>
+      <table>
+        <tr><th>字段</th><th>作用</th></tr>
+        <tr><td><code class="inline">spec.startupPolicy</code></td><td><code class="inline">LeaderCreated</code>（默认，Leader Pod一创建就立刻建Worker，不保证就绪顺序）vs <code class="inline">LeaderReady</code>（延迟到Leader Ready后才创建Worker StatefulSet）</td></tr>
+        <tr><td><code class="inline">leaderworkerset.sigs.k8s.io/exclusive-topology</code>注解</td><td>声明LWS副本与某个拓扑域（如机架）的1:1绑定关系，确保一个推理实例内的多机始终调度到同一机架，保证跨节点通信效率</td></tr>
+      </table>
+      <p>size字段直接对应你要部署的TP/PP并行度——比如GLM 5.2需要8卡×2机做TP=16时，<code class="inline">size: 2</code>就是Stage 5示例里那个manifest的由来。</p>
+
+      <h3 class="sub"><span class="bar"></span>PD分离：llm-d的组件拆解</h3>
+      <p>PD分离要解决的根本问题：prefill阶段并行处理整个prompt，是<strong>计算密集型</strong>；decode阶段每步只算一个token但要读取全部KV cache，是<strong>显存带宽密集型</strong>——两者混部在同一实例上时，一个长prefill请求会阻塞正在解码的请求（head-of-line blocking）。llm-d把这套编排标准化为几个组件：</p>
+      <table>
+        <tr><th>组件</th><th>作用</th></tr>
+        <tr><td>Inference Gateway (IGW)</td><td>基于Gateway API构建的代理层（如kgateway），是请求的统一入口</td></tr>
+        <tr><td>llm-d Scheduler</td><td>KV cache感知路由：跟踪每个decode worker持有哪些KV cache块，命中相同前缀的请求会被路由到已缓存该前缀的worker上，最大化前缀缓存命中率</td></tr>
+        <tr><td>Decode端sidecar</td><td>协调prefill worker和decode worker之间点对点的KV cache传输，通过NVLink/InfiniBand等高速互联搬运，让decode worker能拿到必要的上下文</td></tr>
+      </table>
+      <p>它是CNCF在2026年接受的sandbox项目，由IBM Research、Google、Red Hat、CoreWeave和NVIDIA共同构建，目标是把K8s变成生产级LLM推理平台。与NVIDIA Dynamo的关键区别：<strong>Dynamo是跑在K8s之外的编排层</strong>，用NIXL做KV cache传输，深度绑定NVIDIA自家硬件栈；<strong>llm-d则完全用标准K8s原生对象（CRD、Gateway API）</strong>，如果团队本来就在自建K8s集群、不想引入一套独立的专有控制面，llm-d是更自然的路径。</p>
+      <div class="callout">
+        <div class="callout-title">Selective PD：不是所有请求都值得拆</div>
+        <p>llm-d的inference-scheduler内置了<code class="inline">pd-profile-handler</code>插件（默认关闭）：当prompt足够短、"拆成prefill+decode两阶段再做一次KV传输"的开销反而超过"直接在同一个decode worker上把两阶段都做完"时，调度器会选择跳过分离、直接走decode-only路径——PD分离不是无脑全量启用的开关，而是要按请求特征动态决策的一层策略。</p>
+      </div>
+
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 210" role="img">
+        <title>PD分离架构下一次请求的完整路径</title>
+        <defs>
+          <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <circle cx="50" cy="130" r="24" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1.2"/>
+        <text x="50" y="134" text-anchor="middle" font-size="10.5" fill="var(--ink)">客户端</text>
+
+        <line x1="76" y1="130" x2="106" y2="130" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr4)"/>
+
+        <rect x="108" y="95" width="150" height="70" rx="12" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+        <text x="183" y="122" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)">Inference Gateway</text>
+        <text x="183" y="140" text-anchor="middle" font-size="10" fill="var(--ink-dim)">+ EPP · KV Cache感知路由</text>
+
+        <line x1="260" y1="130" x2="296" y2="130" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#arr4)"/>
+
+        <rect x="298" y="95" width="140" height="70" rx="12" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.2"/>
+        <text x="368" y="122" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)">Prefill Pool</text>
+        <text x="368" y="140" text-anchor="middle" font-size="10" fill="var(--ink-dim)">计算密集 · TP/EP并行</text>
+
+        <line x1="440" y1="130" x2="466" y2="130" stroke="var(--amber)" stroke-width="1.3" marker-end="url(#arr4)"/>
+        <text x="453" y="118" text-anchor="middle" font-size="9.5" fill="var(--amber)">KV Cache传输</text>
+
+        <rect x="468" y="95" width="140" height="70" rx="12" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="538" y="122" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)">Decode Pool</text>
+        <text x="538" y="140" text-anchor="middle" font-size="10" fill="var(--ink-dim)">显存带宽密集</text>
+
+        <path d="M608,95 C608,18 50,18 50,104" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arr4)"/>
+        <text x="330" y="26" text-anchor="middle" font-size="10.5" fill="var(--ink-dim)">流式输出 token → 返回客户端</text>
+      </svg>
+      </div>
+      <p class="diagram-caption">EPP决定请求先去哪个Prefill worker、再由哪个Decode worker接手——KV Cache的点对点传输是两者之间唯一的强耦合。</p>
+
+      <h3 class="sub"><span class="bar"></span>推理网关：Gateway API Inference Extension</h3>
+      <p>在Stage 1讲过的Gateway API基础上，这个扩展新增了两个关键CRD，分工对应两种角色：</p>
+      <table>
+        <tr><th>CRD</th><th>面向角色</th><th>作用</th></tr>
+        <tr><td><code class="inline">InferencePool</code></td><td>平台管理员</td><td>定义一组共享同样计算配置、加速卡型号、基础模型、模型服务框架的Pod，类似"专为推理设计的Service"</td></tr>
+        <tr><td><code class="inline">InferenceObjective</code>（原<code class="inline">InferenceModel</code>）</td><td>AI/ML负责人</td><td>把一个公开模型名映射到InferencePool内的具体版本，支持流量按权重切分（用于A/B测试或灰度）、设置请求优先级</td></tr>
+      </table>
+      <p>请求处理流程：Gateway根据HTTPRoute先匹配到目标InferencePool，再把请求转发给绑定的<strong>Endpoint Picker（EPP）</strong>——EPP持续跟踪每个模型服务器的KV cache利用率、排队长度、活跃LoRA适配器等指标，据此决定最终路由到哪个具体Pod，再通过响应头把选中的endpoint告知代理层。这一整套（代理+EPP）合起来才构成完整的"Inference Gateway"。</p>
+
+      <h3 class="sub"><span class="bar"></span>自动扩缩容：HPA vs KEDA</h3>
+      <p>核心认知：<strong>不要用CPU/GPU利用率做推理扩缩容的信号</strong>。vLLM靠PagedAttention把GPU利用率维持得很高，一个85%利用率的Pod可能在从容处理5个请求，也可能在吃力支撑500个——利用率数字本身分辨不出Pod是否过载。真正该看的是请求级指标：</p>
+      <table class="compact">
+        <tr><td><code class="inline">vllm:num_requests_waiting</code></td><td>排队等待处理的请求数——最常用的扩容信号</td></tr>
+        <tr><td><code class="inline">vllm:gpu_cache_usage_perc</code></td><td>KV cache利用率</td></tr>
+        <tr><td><code class="inline">vllm:time_per_output_token_seconds</code></td><td>TPOT，解码阶段的每token延迟</td></tr>
+        <tr><td><code class="inline">vllm:e2e_request_latency_seconds</code></td><td>端到端请求延迟</td></tr>
+      </table>
+      <p><strong>HPA</strong>原生只能接CPU/内存或需要额外部署Prometheus Adapter才能接自定义指标；<strong>KEDA</strong>内置Prometheus scaler，直接查询PromQL作为触发器，背后仍然是生成并托管一个标准HPA对象（<code class="inline">kubectl get hpa</code>能看到`keda-hpa-xxx`），因此不冲突、是KEDA在HPA之上做的能力扩展而非替代。KEDA还额外提供Scale-to-Zero（空闲彻底缩到0实例）和多触发器组合（比如同时接排队长度和DCGM的GPU利用率，前者防止过载、后者提前预热应对突发流量）。</p>
+      <div class="callout">
+        <div class="callout-title">生产坑点</div>
+        <p>扩容的瓶颈往往不是KEDA配置本身，而是<strong>模型加载耗时</strong>——一个几百GB的MoE模型从存储加载到显存可能要数分钟，扩容信号触发到新Pod真正Ready之间有明显延迟。对策是提前用PVC/共享存储缓存好模型权重，并给scaleUp设置合理的stabilization window避免抖动，scaleDown则应该更保守（比如300秒稳定窗口、每次只减1个副本）。</p>
+      </div>
+    </section>
+
+    <!-- ============ STAGE 5 ============ -->
+    <section class="stage" id="stage-5">
+      <div class="stage-eyebrow"><span class="stage-num">05</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">实战贯穿：GLM 5.2生产化部署</h2>
+      <p class="stage-desc">把前四个阶段串起来，落到一次真实的部署方案设计上——这里能看到Stage 1-4的每一层是怎么互相咬合的。</p>
+
+      <h3 class="sub"><span class="bar"></span>模型规格与硬件选型</h3>
+      <p>GLM-5系列是78层decoder-only架构，前3层Dense FFN、后75层MoE（路由专家+共享专家），自带一层MTP用于加速解码；GLM 5.2在此基础上扩展到753B参数规模。</p>
+      <table>
+        <tr><th>量化路线</th><th>硬件需求</th></tr>
+        <tr><td>BF16</td><td>2台Atlas 800 A3（128G×8）或 4台Atlas 800 A2（64G×8）</td></tr>
+        <tr><td>W8A8量化</td><td>1台Atlas 800 A3（128G×8）或 2台Atlas 800 A2（64G×8）</td></tr>
+        <tr><td>FP8（GPU路线）</td><td>约750GB权重，8×H200单节点1.13TB HBM可容纳权重+KV cache</td></tr>
+      </table>
+      <p>硬件路线直接决定了Stage 2讲的加速卡资源管理策略：TP≥8的部署必须走<strong>整卡调度</strong>（vNPU"每Pod限一张卡"的限制在这里生效），且NUMA对齐建议至少用<code class="inline">restricted</code>策略，避免CPU预处理和NPU之间跨NUMA搬运数据拖慢首字延迟。</p>
+
+      <h3 class="sub"><span class="bar"></span>为什么必须做PD分离，而不是一个LWS通吃</h3>
+      <p>GLM 5.2这类超大MoE模型的prefill阶段要对1M上下文做全量attention计算，是重度计算密集型；decode阶段虽然每步只算一个token，但753B参数+超长KV cache的读取是显存带宽密集型。两者混部在同一组实例上，一个长文档的prefill请求会直接阻塞正在解码的会话——这正是Stage 4讲的head-of-line blocking，在GLM 5.2的1M上下文场景下会被放大到极致。因此生产部署必须把prefill和decode拆成两个独立的LWS：</p>
+
+      <h3 class="sub"><span class="bar"></span>用LWS建模GLM 5.2的多机拓扑</h3>
+      <p>把prefill和decode拆成两个独立的LWS，是PD分离在K8s上的落地方式——重点不是记语法，而是理解为什么要拆：prefill计算密集、decode显存带宽密集，扩缩容特性完全不同。</p>
+
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 330" role="img">
+        <title>GLM 5.2在K8s上的多机部署拓扑</title>
+        <defs>
+          <marker id="arr5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <rect x="270" y="18" width="140" height="50" rx="10" fill="var(--teal-dim)" stroke="var(--teal)" stroke-width="1.2"/>
+        <text x="340" y="40" text-anchor="middle" font-family="var(--mono)" font-size="12" font-weight="700" fill="var(--ink)">Gateway + EPP</text>
+        <text x="340" y="56" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">InferencePool路由</text>
+
+        <line x1="300" y1="68" x2="200" y2="106" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr5)"/>
+        <line x1="380" y1="68" x2="500" y2="106" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr5)"/>
+
+        <rect x="40" y="108" width="280" height="172" rx="12" fill="none" stroke="var(--blue)" stroke-width="1.3" stroke-dasharray="6 4"/>
+        <text x="56" y="128" font-family="var(--mono)" font-size="12.5" font-weight="700" fill="var(--blue)">Prefill LWS</text>
+        <text x="56" y="143" font-size="10" fill="var(--ink-dim)">size: 2 · exclusive-topology=rack</text>
+        <rect x="60" y="155" width="110" height="90" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.1"/>
+        <text x="115" y="192" text-anchor="middle" font-size="10.5" fill="var(--ink)">Node0 · Leader</text>
+        <text x="115" y="208" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Atlas 800 A3 ×8</text>
+        <rect x="190" y="155" width="110" height="90" rx="8" fill="var(--blue-dim)" stroke="var(--blue)" stroke-width="1.1"/>
+        <text x="245" y="192" text-anchor="middle" font-size="10.5" fill="var(--ink)">Node1 · Worker</text>
+        <text x="245" y="208" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Atlas 800 A3 ×8</text>
+        <line x1="170" y1="200" x2="190" y2="200" stroke="var(--blue)" stroke-width="1.3"/>
+        <text x="180" y="264" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">HCCL · 同机架</text>
+
+        <rect x="360" y="108" width="280" height="172" rx="12" fill="none" stroke="var(--green)" stroke-width="1.3" stroke-dasharray="6 4"/>
+        <text x="376" y="128" font-family="var(--mono)" font-size="12.5" font-weight="700" fill="var(--green)">Decode LWS</text>
+        <text x="376" y="143" font-size="10" fill="var(--ink-dim)">size: 2 · KEDA自动扩缩容</text>
+        <rect x="380" y="155" width="110" height="90" rx="8" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+        <text x="435" y="192" text-anchor="middle" font-size="10.5" fill="var(--ink)">Node0 · Leader</text>
+        <text x="435" y="208" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Atlas 800 A3 ×8</text>
+        <rect x="510" y="155" width="110" height="90" rx="8" fill="var(--green-dim)" stroke="var(--green)" stroke-width="1.1"/>
+        <text x="565" y="192" text-anchor="middle" font-size="10.5" fill="var(--ink)">Node1 · Worker</text>
+        <text x="565" y="208" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">Atlas 800 A3 ×8</text>
+        <line x1="490" y1="200" x2="510" y2="200" stroke="var(--green)" stroke-width="1.3"/>
+        <text x="500" y="264" text-anchor="middle" font-size="9.5" fill="var(--ink-dim)">HCCL · 同机架</text>
+
+        <line x1="320" y1="200" x2="358" y2="200" stroke="var(--amber)" stroke-width="1.3" marker-end="url(#arr5)"/>
+        <text x="339" y="188" text-anchor="middle" font-size="9" fill="var(--amber)">KV传输</text>
+
+        <text x="500" y="302" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--green)">↕ KEDA ScaledObject（按num_requests_waiting扩缩容）</text>
+      </svg>
+      </div>
+      <p class="diagram-caption">Prefill池容量偏静态，Decode池挂自动扩缩容——两个LWS各自独立伸缩，互不牵连。</p>
+      <pre class="code"><span class="cm"># prefill阶段：独立的LWS，2机组成一个复制单元</span>
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  name: glm52-prefill
+  annotations:
+    <span class="kw">leaderworkerset.sigs.k8s.io/exclusive-topology</span>: rack  <span class="cm"># 绑定同机架，保证HCCL通信效率</span>
+spec:
+  replicas: 1
+  startupPolicy: <span class="val">LeaderReady</span>  <span class="cm"># Leader就绪后才拉起Worker，避免脑裂</span>
+  leaderWorkerTemplate:
+    size: 2  <span class="cm"># 对应手写脚本里的 node0/node1</span>
+    leaderTemplate:
+      spec:
+        containers:
+        - name: vllm-ascend-leader
+          image: quay.io/ascend/vllm-ascend:glm5.2-a3
+          env:
+          - name: HCCL_SOCKET_IFNAME
+            value: <span class="val">"&lt;按拓扑标签动态注入&gt;"</span>
+          resources:
+            limits:
+              huawei.com/ascend-910: 8
+    workerTemplate:
+      spec:
+        containers:
+        - name: vllm-ascend-worker
+          image: quay.io/ascend/vllm-ascend:glm5.2-a3
+          resources:
+            limits:
+              huawei.com/ascend-910: 8
+<span class="cm">---
+# decode阶段：独立资源池，可单独扩缩容，是KEDA/HPA真正作用的对象</span>
+apiVersion: leaderworkerset.x-k8s.io/v1
+kind: LeaderWorkerSet
+metadata:
+  name: glm52-decode
+spec:
+  <span class="cm"># ...同构配置，容量与扩缩容策略独立于prefill</span></pre>
+      <p>两个LWS部署好之后，还需要Stage 4讲的两个组件把它们真正接入生产流量：一是分别给prefill池和decode池建<code class="inline">InferencePool</code>，由llm-d Scheduler做KV cache感知路由和Selective PD决策；二是给decode池挂一个KEDA <code class="inline">ScaledObject</code>，用<code class="inline">vllm:num_requests_waiting</code>做扩缩容触发器——prefill池通常不需要这么激进的自动扩缩容，因为它的负载模式更接近批处理，容量规划可以偏静态。</p>
+    </section>
+
+    <!-- ============ STAGE 6 ============ -->
+    <section class="stage" id="stage-6">
+      <div class="stage-eyebrow"><span class="stage-num">06</span><span class="stage-tag tag-ready">已深入讲解</span></div>
+      <h2 class="stage-title">生产化收尾</h2>
+      <p class="stage-desc">补齐从"能跑起来"到"能稳定运维"之间的最后一段距离——这一层几乎全部是Stage 1可观测性基建和Stage 4推理编排的组合应用。</p>
+
+      <h3 class="sub"><span class="bar"></span>监控指标接入</h3>
+      <p>vLLM/vLLM-Ascend原生暴露Prometheus格式指标，配合Stage 1讲的<code class="inline">ServiceMonitor</code>即可自动被抓取，Grafana侧重点看这几类：</p>
+      <table class="compact">
+        <tr><td>TTFT（首字延迟）</td><td>直接反映prefill阶段排队与计算耗时，是用户感知到的"响应速度"</td></tr>
+        <tr><td>TPOT（每token延迟）</td><td>反映decode阶段的显存带宽压力，超长上下文场景下最容易劣化</td></tr>
+        <tr><td>KV cache命中率</td><td>llm-d Scheduler路由质量的直接体现，命中率低说明前缀缓存没发挥作用</td></tr>
+        <tr><td>num_requests_waiting</td><td>Stage 4讲过的核心扩容信号，也是判断"该扩容还是该拒绝新请求"的依据</td></tr>
+      </table>
+
+      <h3 class="sub"><span class="bar"></span>灰度发布：金丝雀验证量化策略切换</h3>
+      <p>比如要把decode池从W8A8切到W4A8量化，直接全量切换风险很高——量化精度损失对长尾请求的影响很难靠离线评测完全覆盖。生产上通常用Argo Rollouts或Flagger这类渐进式发布控制器，配合Gateway API的流量权重能力做金丝雀：</p>
+      <ol>
+        <li>先用<code class="inline">InferenceObjective</code>的<code class="inline">targetModels</code>权重字段，把小比例（如5%）流量导向新量化版本的Pod</li>
+        <li>用Stage 6上面这套监控指标（尤其是TPOT和错误率）做自动化的金丝雀分析，对比新旧版本表现</li>
+        <li>指标健康则逐步调大权重（5%→25%→50%→100%），指标劣化则自动回滚权重到0——这个"渐进+自动回滚"的逻辑正是Argo Rollouts/Flagger相比手动改Deployment权重的核心价值</li>
+      </ol>
+
+      <div class="diagram-wrap">
+      <svg viewBox="0 0 680 260" role="img">
+        <title>金丝雀发布流量权重随阶段变化</title>
+        <defs>
+          <marker id="arr6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="var(--ink-faint)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <text x="70" y="28" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--ink)">5%</text>
+        <rect x="48" y="34" width="44" height="126" rx="4" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1"/>
+        <rect x="48" y="34" width="44" height="6.3" rx="3" fill="var(--teal)" stroke="var(--teal)" stroke-width="1"/>
+        <text x="70" y="175" text-anchor="middle" font-size="10" fill="var(--ink-dim)">灰度1</text>
+
+        <text x="230" y="28" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--ink)">25%</text>
+        <rect x="208" y="34" width="44" height="126" rx="4" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1"/>
+        <rect x="208" y="34" width="44" height="31.5" rx="3" fill="var(--teal)" stroke="var(--teal)" stroke-width="1"/>
+        <text x="230" y="175" text-anchor="middle" font-size="10" fill="var(--ink-dim)">灰度2</text>
+
+        <text x="390" y="28" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--ink)">50%</text>
+        <rect x="368" y="34" width="44" height="126" rx="4" fill="var(--gray-dim)" stroke="var(--gray)" stroke-width="1"/>
+        <rect x="368" y="34" width="44" height="63" rx="3" fill="var(--teal)" stroke="var(--teal)" stroke-width="1"/>
+        <text x="390" y="175" text-anchor="middle" font-size="10" fill="var(--ink-dim)">灰度3</text>
+
+        <text x="550" y="28" text-anchor="middle" font-family="var(--mono)" font-size="12" fill="var(--ink)">100%</text>
+        <rect x="528" y="34" width="44" height="126" rx="4" fill="var(--teal)" stroke="var(--teal)" stroke-width="1"/>
+        <text x="550" y="175" text-anchor="middle" font-size="10" fill="var(--ink-dim)">全量</text>
+
+        <line x1="94" y1="97" x2="206" y2="97" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr6)"/>
+        <text x="150" y="88" text-anchor="middle" font-size="9" fill="var(--green)">✓ 指标健康</text>
+        <line x1="254" y1="97" x2="366" y2="97" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr6)"/>
+        <text x="310" y="88" text-anchor="middle" font-size="9" fill="var(--green)">✓ 指标健康</text>
+        <line x1="414" y1="97" x2="526" y2="97" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#arr6)"/>
+        <text x="470" y="88" text-anchor="middle" font-size="9" fill="var(--green)">✓ 指标健康</text>
+
+        <path d="M572,150 C650,200 650,230 70,230 C50,230 50,210 70,168" fill="none" stroke="var(--amber)" stroke-width="1.2" stroke-dasharray="5 4" marker-end="url(#arr6)"/>
+        <text x="340" y="248" text-anchor="middle" font-size="11" fill="var(--amber)">任一阶段指标劣化 → 自动回滚权重至0%</text>
+      </svg>
+      </div>
+      <p class="diagram-caption">柱子中的青色部分是新量化版本（如W4A8）承接的流量占比，灰色是旧版本；每一步放量前都要过一次指标门禁。</p>
+      <div class="callout">
+        <div class="callout-title">和Stage 1的PDB要配合</div>
+        <p>灰度过程中新旧版本Pod同时存在，如果这时候又赶上集群节点维护触发滚动重启，PDB能防止某一版本的Pod被一次性全部驱逐——灰度发布和故障自愈两件事看似无关，但都依赖同一个PDB机制兜底。</p>
+      </div>
+
+      <h3 class="sub"><span class="bar"></span>跨云场景的存储与网络对接</h3>
+      <p>如果训练在阿里云、推理部署在华为云（对应你之前做过的CPFS→OBS跨云迁移背景），这一层要提前规划好：</p>
+      <ul>
+        <li><strong>模型产物怎么过去</strong>：训练产出的Checkpoint/最终权重需要一条稳定的跨云同步链路，落到Stage 1讲的CSI持久卷上，供推理侧LWS的Pod挂载</li>
+        <li><strong>两套监控体系怎么合并</strong>：阿里云和华为云各自的Prometheus/Grafana实例，如果需要统一大盘，要么用Thanos/VictoriaMetrics做跨集群联邦查询，要么在两边分别配置远程写入到统一的时序库</li>
+        <li><strong>跨云延迟对PD分离的影响</strong>：如果prefill和decode被迫跨云部署（不建议，但某些容灾场景会这样设计），KV cache传输的跨云网络延迟会显著抵消PD分离带来的收益，这时候<code class="inline">pd-profile-handler</code>的阈值需要重新评估</li>
+      </ul>
+    </section>
+
+    <!-- ============ TIMELINE ============ -->
+    <section class="stage" id="timeline">
+      <div class="stage-eyebrow"><span class="stage-num">--</span></div>
+      <h2 class="stage-title">学习节奏建议</h2>
+      <table>
+        <tr><th>周次</th><th>内容</th></tr>
+        <tr><td>第1周</td><td>Stage 1 · 生产级K8s基建</td></tr>
+        <tr><td>第2周</td><td>Stage 2 · GPU/NPU资源管理</td></tr>
+        <tr><td>第3–4周</td><td>Stage 3 · 训练侧编排（Kubeflow Trainer + Volcano）</td></tr>
+        <tr><td>第5–6周</td><td>Stage 4 · 推理侧编排（LWS + PD分离 + llm-d概念）</td></tr>
+        <tr><td>第7–8周</td><td>Stage 5–6 · GLM 5.2实战贯穿 + 生产运维收尾</td></tr>
+      </table>
+    </section>
+
+    <!-- ============ GLOSSARY ============ -->
+    <section class="stage" id="glossary">
+      <div class="stage-eyebrow"><span class="stage-num">--</span></div>
+      <h2 class="stage-title">术语速查</h2>
+      <p class="stage-desc">按主题分类的完整术语表，方便复习时快速定位。</p>
+
+      <div class="gcat">K8s原生对象与机制</div>
+      <table class="compact">
+        <tr><td>etcd</td><td>集群状态唯一数据源，一致性键值存储</td></tr>
+        <tr><td>Admission Webhook</td><td>Validating（校验）/ Mutating（改写）两类准入钩子</td></tr>
+        <tr><td>Reconcile Loop</td><td>对比期望与实际状态、持续调谐的通用控制器模式</td></tr>
+        <tr><td>Topology Manager</td><td>kubelet特性，协调资源分配对齐NUMA节点</td></tr>
+        <tr><td>Pod Disruption Budget</td><td>限制一组Pod同时被主动中断的数量</td></tr>
+        <tr><td>Node Problem Detector</td><td>检测节点硬件异常并自动打Taint隔离</td></tr>
+        <tr><td>PriorityClass / 抢占</td><td>定义任务优先级，允许高优先级任务抢占资源</td></tr>
+        <tr><td>Descheduler</td><td>定期重新触发调度，纠正资源分布不均衡</td></tr>
+      </table>
+
+      <div class="gcat">调度机制</div>
+      <table class="compact">
+        <tr><td>Scheduling Framework</td><td>kube-scheduler可插拔扩展点流水线</td></tr>
+        <tr><td>Requests / Limits</td><td>资源申请下限/使用上限，落地为cgroups配置</td></tr>
+        <tr><td>QoS Class</td><td>Guaranteed / Burstable / BestEffort三档驱逐优先级</td></tr>
+        <tr><td>Taint / Toleration</td><td>节点排斥标记 / Pod对应的容忍声明</td></tr>
+        <tr><td>NodeAffinity</td><td>Pod主动声明要调度到哪类节点</td></tr>
+        <tr><td>schedulerName</td><td>Pod指定由哪个调度器负责调度决策</td></tr>
+        <tr><td>Gang Scheduling</td><td>一组Pod必须同时调度成功，否则都不启动</td></tr>
+        <tr><td>PodGroup</td><td>Volcano引入的CRD，显式声明gang scheduling语义</td></tr>
+      </table>
+
+      <div class="gcat">网络与存储接口</div>
+      <table class="compact">
+        <tr><td>CNI</td><td>容器网络接口标准，具体实现由Flannel/Calico等插件完成</td></tr>
+        <tr><td>CSI</td><td>容器存储接口标准，分Identity/Controller/Node三个gRPC服务</td></tr>
+        <tr><td>kube-proxy</td><td>实现Service转发规则，iptables/ipvs/nftables三种模式</td></tr>
+        <tr><td>CoreDNS</td><td>集群内服务发现，Service名解析成ClusterIP</td></tr>
+        <tr><td>Ingress Controller</td><td>实际监听Ingress对象并生成反向代理配置的组件</td></tr>
+        <tr><td>Gateway API</td><td>Ingress下一代替代标准</td></tr>
+        <tr><td>Multus CNI</td><td>meta-plugin，让Pod挂多张网卡（管理网+RDMA直通）</td></tr>
+        <tr><td>VolumeBindingMode</td><td>Immediate / WaitForFirstConsumer，控制PV何时绑定</td></tr>
+        <tr><td>AccessModes</td><td>ReadWriteOnce（单节点）/ ReadWriteMany（多节点共享）</td></tr>
+      </table>
+
+      <div class="gcat">可观测性</div>
+      <table class="compact">
+        <tr><td>Prometheus Operator</td><td>用CRD声明式管理抓取目标与告警规则</td></tr>
+        <tr><td>ServiceMonitor / PodMonitor</td><td>声明哪些Service/Pod需要被Prometheus抓取</td></tr>
+        <tr><td>cAdvisor</td><td>内嵌kubelet，暴露容器级资源指标</td></tr>
+        <tr><td>node-exporter</td><td>DaemonSet，暴露宿主机层面指标</td></tr>
+        <tr><td>kube-state-metrics</td><td>暴露K8s对象自身状态（非资源使用）</td></tr>
+        <tr><td>DCGM Exporter / npu-exporter</td><td>GPU/NPU专属指标导出组件</td></tr>
+      </table>
+
+      <div class="gcat">GPU / NPU 资源管理</div>
+      <table class="compact">
+        <tr><td>Device Plugin</td><td>gRPC框架，把加速卡注册成K8s可调度资源</td></tr>
+        <tr><td>GPU Operator</td><td>NVIDIA整套GPU软件栈的CRD+Operator自动化管理</td></tr>
+        <tr><td>MindCluster / MindX DL</td><td>华为昇腾对应的集群调度组件体系</td></tr>
+        <tr><td>Ascend Docker Runtime</td><td>runC插件，让容器运行时能访问NPU</td></tr>
+        <tr><td>MIG</td><td>硬件级GPU物理切分，最多7实例</td></tr>
+        <tr><td>vNPU</td><td>昇腾NPU的静态/动态虚拟化切分</td></tr>
+        <tr><td>Time-Slicing</td><td>软件级分时复用，无真实隔离</td></tr>
+        <tr><td>HAMi</td><td>跨厂商开源细粒度vGPU/vNPU配额方案</td></tr>
+      </table>
+
+      <div class="gcat">训练侧编排</div>
+      <table class="compact">
+        <tr><td>TrainJob</td><td>Kubeflow Trainer v2统一的训练任务API，替代PyTorchJob等框架专属CRD</td></tr>
+        <tr><td>TrainingRuntime / ClusterTrainingRuntime</td><td>平台管理员预置的训练基础设施模板，封装torchrun启动、rendezvous等细节</td></tr>
+        <tr><td>JobSet</td><td>K8s原生批量Job编排API，TrainJob底层依赖的执行引擎</td></tr>
+        <tr><td>Volcano PodGroup</td><td>声明"必须同时调度成功"的gang scheduling对象</td></tr>
+        <tr><td>Kueue Workload</td><td>把一个Job的Pod组包成的单一准入单元，全部资源就绪才放行</td></tr>
+        <tr><td>ClusterQueue / LocalQueue / ResourceFlavor</td><td>Kueue的配额、命名空间入口、资源口味三件套</td></tr>
+        <tr><td>KAI Scheduler</td><td>NVIDIA开源、面向GPU场景优化的gang scheduling调度器</td></tr>
+        <tr><td>TorchElastic / elastic-agent</td><td>PyTorch弹性训练框架，节点级常驻代理负责rendezvous与成员协商</td></tr>
+        <tr><td>Rendezvous</td><td>基于etcd的集合点机制，协商新的worker成员、RANK、WORLD_SIZE</td></tr>
+        <tr><td>ElasticJob / PodFailurePolicy</td><td>弹性训练CRD与Pod失败后的重试/恢复策略</td></tr>
+      </table>
+
+      <div class="gcat">推理侧编排</div>
+      <table class="compact">
+        <tr><td>LeaderWorkerSet (LWS)</td><td>把一组Pod作为整体管理的多机推理API，底层落地为Leader/Worker两个StatefulSet</td></tr>
+        <tr><td>startupPolicy</td><td>LWS控制Worker相对Leader的创建时机：LeaderCreated / LeaderReady</td></tr>
+        <tr><td>exclusive-topology注解</td><td>把LWS副本与拓扑域（如机架）做1:1绑定，保证跨节点通信效率</td></tr>
+        <tr><td>PD分离</td><td>prefill（计算密集）与decode（显存带宽密集）拆分为独立可扩缩容的服务</td></tr>
+        <tr><td>llm-d</td><td>CNCF sandbox项目，PD分离+KV Cache分级卸载的推理平台</td></tr>
+        <tr><td>Inference Gateway (IGW) / EPP</td><td>基于Gateway API的推理网关代理 + 负责KV cache感知路由决策的Endpoint Picker</td></tr>
+        <tr><td>Selective PD / pd-profile-handler</td><td>按prompt长度动态决定是否值得做PD拆分的调度策略</td></tr>
+        <tr><td>InferencePool / InferenceObjective</td><td>Gateway API Inference Extension的两个CRD：定义模型服务器池 / 定义模型名到池内版本的映射与流量策略</td></tr>
+        <tr><td>KEDA ScaledObject</td><td>声明事件驱动扩缩容规则的CRD，底层生成并托管标准HPA</td></tr>
+        <tr><td>Argo Rollouts / Flagger</td><td>渐进式发布控制器，支持基于指标自动化的金丝雀分析与回滚</td></tr>
+      </table>
+    </section>
+
+    <div class="footline">整理自与Claude的学习对话 · 持续更新中</div>
+
+  </main>
+</div>
+
+<script>
+  const items = document.querySelectorAll('.rail-item');
+  const sections = Array.from(items).map(i => document.getElementById(i.dataset.target)).filter(Boolean);
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        items.forEach(i => i.classList.remove('active'));
+        const match = document.querySelector(`.rail-item[data-target="${entry.target.id}"]`);
+        if(match) match.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
